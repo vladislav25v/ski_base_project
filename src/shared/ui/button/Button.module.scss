@@ -1,0 +1,38 @@
+@use './global.scss' as buttons;
+
+.button {
+  @include buttons.button-base;
+}
+
+.variantOutline {
+  @include buttons.button-outline;
+}
+
+.variantSolid {
+  @include buttons.button-solid;
+}
+
+.variantDanger {
+  @include buttons.button-danger;
+}
+
+.variantText {
+  @include buttons.button-text;
+}
+
+.sizeDefault {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.sizeCompact {
+  @include buttons.button-compact;
+}
+
+.sizeSquare {
+  @include buttons.button-square;
+}
+
+.uppercase {
+  @include buttons.button-uppercase;
+}

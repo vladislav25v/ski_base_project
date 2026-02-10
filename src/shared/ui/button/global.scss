@@ -1,0 +1,70 @@
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+}
+
+@mixin button-outline {
+  border-color: var(--color-border);
+  background: transparent;
+}
+
+@mixin button-uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+@mixin button-compact {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+@mixin button-square {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  padding: 0;
+}
+
+@mixin button-solid {
+  background: #0b1b2b;
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+@mixin button-danger {
+  background: #f2d5d8;
+  color: #7a0b1e;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+@mixin button-text {
+  border: none;
+  padding: 0;
+  background: transparent;
+  opacity: 0.7;
+  justify-content: flex-start;
+}

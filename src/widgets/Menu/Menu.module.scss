@@ -1,0 +1,46 @@
+.menu {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 16, 24, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  z-index: 4;
+}
+
+.menuOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menuPanel {
+  width: min(320px, 85vw);
+  background: var(--color-surface);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+  box-shadow: -16px 0 40px rgba(9, 17, 28, 0.18);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.navLink {
+  text-decoration: none;
+  color: inherit;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.menuClose {
+  margin-top: auto;
+}

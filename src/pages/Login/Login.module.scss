@@ -1,0 +1,64 @@
+.page {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px 60px;
+}
+
+.card {
+  width: min(420px, 100%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 18px 45px -35px rgba(11, 27, 43, 0.6);
+  display: grid;
+  gap: 18px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-accent);
+  color: var(--color-text);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.error {
+  margin: 0;
+  color: #b5172d;
+  font-size: 14px;
+}
+
+.note {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.7;
+}

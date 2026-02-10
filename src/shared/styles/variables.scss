@@ -1,0 +1,19 @@
+:root {
+  --font-base: 'PT Serif', 'Times New Roman', serif;
+  --color-bg: #ffffff;
+  --color-bg-accent: #e6eef6;
+  --color-surface: rgba(255, 255, 255, 0.712);
+  --color-text: #0b1b2b;
+  --color-border: rgba(12, 26, 44, 0.2);
+  --app-bg-color: #f6f8fb;
+  --app-bg-image: url('/ChatGPT_Image_Feb_10_2026_09_46_18_AM_fixed.svg');
+}
+
+body[data-theme='dark'] {
+  --color-bg: #0b1118;
+  --color-bg-accent: #0f1822;
+  --color-surface: rgba(15, 24, 34, 0.781);
+  --color-text: #e6eef6;
+  --color-border: rgba(230, 238, 246, 0.25);
+  --app-bg-color: #5a5a5a6e;
+}
