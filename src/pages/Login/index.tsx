@@ -1,3 +1,4 @@
+import type { SyntheticEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../shared/ui'
@@ -30,7 +31,7 @@ export const LoginPage = () => {
       }
       const user = data.session?.user
       if (user && adminUid && user.id === adminUid) {
-        navigate('/admin', { replace: true })
+        navigate('/news', { replace: true })
       }
     })
 
@@ -39,7 +40,7 @@ export const LoginPage = () => {
     }
   }, [adminUid, navigate])
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     event.preventDefault()
     setError('')
 
@@ -78,7 +79,7 @@ export const LoginPage = () => {
       return
     }
 
-    navigate('/admin', { replace: true })
+    navigate('/news', { replace: true })
   }
 
   return (

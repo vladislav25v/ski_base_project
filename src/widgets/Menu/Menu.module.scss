@@ -27,6 +27,13 @@
   box-shadow: -16px 0 40px rgba(9, 17, 28, 0.18);
 }
 
+.menuPanelIntro {
+  transform: translateY(32px);
+  opacity: 0;
+  animation: rise 700ms ease-out forwards;
+  animation-delay: 280ms;
+}
+
 .nav {
   display: flex;
   flex-direction: column;
@@ -43,4 +50,52 @@
 
 .menuClose {
   margin-top: auto;
+}
+
+@keyframes rise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .menu {
+    position: static;
+    inset: auto;
+    background: transparent;
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menuPanel {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 12px 24px;
+    box-shadow: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .nav {
+    flex-direction: row;
+    gap: 100px;
+    margin: 0;
+  }
+
+  .menuClose {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuPanelIntro {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
 }

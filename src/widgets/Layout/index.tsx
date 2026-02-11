@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
-import { Toggle, getButtonClassName } from '../../shared/ui'
+import { Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../../shared/lib'
 import { Header } from '../Header'
 import { Menu } from '../Menu'
+import { Footer } from '../footer'
 import styles from './Layout.module.scss'
 
 export const Layout = () => {
   const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+  const isHome = location.pathname === '/'
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') {
       return 'light'
@@ -65,32 +67,16 @@ export const Layout = () => {
   return (
     <div className={styles.layout}>
       <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
-      <Menu isOpen={menuOpen} onClose={handleMenuClose} />
+      <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>
         <Outlet />
       </main>
-      <footer className={styles.footer}>
-        {isAdmin ? (
-          <button
-            className={getButtonClassName({ uppercase: true })}
-            type="button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        ) : (
-          <Link className={getButtonClassName({ uppercase: true })} to="/login">
-            Admin Login
-          </Link>
-        )}
-        <Toggle
-          className={styles.themeToggle}
-          checked={theme === 'dark'}
-          labelLeft="Light"
-          labelRight="Dark"
-          onChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-        />
-      </footer>
+      <Footer
+        isAdmin={isAdmin}
+        theme={theme}
+        onLogout={handleLogout}
+        onThemeChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+      />
     </div>
   )
 }

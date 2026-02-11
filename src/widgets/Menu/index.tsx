@@ -5,9 +5,10 @@ import styles from './Menu.module.scss'
 type MenuProps = {
   isOpen: boolean
   onClose: () => void
+  intro?: boolean
 }
 
-export const Menu = ({ isOpen, onClose }: MenuProps) => {
+export const Menu = ({ isOpen, onClose, intro = false }: MenuProps) => {
   return (
     <div
       className={`${styles.menu} ${isOpen ? styles.menuOpen : ''}`}
@@ -17,7 +18,12 @@ export const Menu = ({ isOpen, onClose }: MenuProps) => {
         }
       }}
     >
-      <div className={styles.menuPanel} role="dialog" aria-modal="true" id="site-menu">
+      <div
+        className={`${styles.menuPanel} ${intro ? styles.menuPanelIntro : ''}`}
+        role={isOpen ? 'dialog' : undefined}
+        aria-modal={isOpen || undefined}
+        id="site-menu"
+      >
         <nav className={styles.nav}>
           <Link className={styles.navLink} to="/" onClick={onClose}>
             Home

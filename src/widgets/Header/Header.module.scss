@@ -19,6 +19,7 @@
 }
 
 .burger {
+  display: inline-flex;
   flex-direction: column;
   justify-content: center;
   gap: 6px;
@@ -31,4 +32,10 @@
   background: var(--color-text);
   display: block;
   margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .burger {
+    display: none;
+  }
 }
