@@ -211,7 +211,7 @@ export const NewsPage = () => {
         <div className={styles.headerTop}>
           <h1 className={styles.title}>News</h1>
           {isAdmin && (
-            <Button variant="solid" onClick={handleAddNews}>
+            <Button variant="outline" onClick={handleAddNews}>
               Add news
             </Button>
           )}
@@ -283,7 +283,7 @@ export const NewsPage = () => {
             )}
             {formError && <p className={styles.error}>{formError}</p>}
             <div className={styles.actions}>
-              <Button variant="solid" onClick={() => handleSave()} disabled={isSaving}>
+              <Button variant="outline" onClick={() => handleSave()} disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save'}
               </Button>
               <Button
@@ -378,7 +378,7 @@ export const NewsPage = () => {
                   )}
                   {formError && <p className={styles.error}>{formError}</p>}
                   <div className={styles.actions}>
-                    <Button variant="solid" onClick={() => handleSave(item.id)} disabled={isSaving}>
+                    <Button variant="outline" onClick={() => handleSave(item.id)} disabled={isSaving}>
                       {isSaving ? 'Saving...' : 'Save'}
                     </Button>
                     <Button variant="danger" onClick={() => handleDelete(item.id)} disabled={isSaving}>

@@ -27,7 +27,7 @@
 
 @mixin button-outline {
   border-color: var(--color-border);
-  background: transparent;
+  background: var(--app-bg-color);
 }
 
 @mixin button-uppercase {
@@ -49,7 +49,6 @@
 
 @mixin button-solid {
   background: #0b1b2b;
-  color: #ffffff;
   border-color: transparent;
   font-weight: 600;
 }
