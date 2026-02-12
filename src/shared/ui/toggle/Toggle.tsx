@@ -3,23 +3,24 @@ import styles from './Toggle.module.scss'
 
 type ToggleProps = {
   checked: boolean
-  labelLeft?: string
-  labelRight?: string
+  labelOn?: string
+  labelOff?: string
   className?: string
   onChange: (checked: boolean) => void
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'type'>
 
-const joinClassNames = (items: Array<string | false | undefined>) =>
-  items.filter(Boolean).join(' ')
+const joinClassNames = (items: Array<string | false | undefined>) => items.filter(Boolean).join(' ')
 
 export const Toggle = ({
   checked,
-  labelLeft = 'Light',
-  labelRight = 'Dark',
+  labelOn = 'выключить свет',
+  labelOff = 'включить свет',
   className,
   onChange,
   ...props
 }: ToggleProps) => {
+  const label = checked ? labelOn : labelOff
+
   return (
     <button
       type="button"
@@ -29,14 +30,12 @@ export const Toggle = ({
       onClick={() => onChange(!checked)}
       {...props}
     >
-      <span className={joinClassNames([styles.label, !checked && styles.labelActive])}>
-        {labelLeft}
+      <span className={styles.label}>
+        <span className={styles.labelText}>{label}</span>
+        <span className={styles.labelCaption}>(разрешено по средам)</span>
       </span>
       <span className={styles.track}>
         <span className={styles.thumb} />
-      </span>
-      <span className={joinClassNames([styles.label, checked && styles.labelActive])}>
-        {labelRight}
       </span>
     </button>
   )

@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 16px 10px;
   background: var(--color-surface);
   backdrop-filter: blur(6px);
   position: sticky;
@@ -11,27 +11,63 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.brand {
-  font-size: 20px;
+.logo {
+  font-size: clamp(20px, 0.5vw + 12px, 30px);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  line-height: clamp(18px, 1.4vw + 12px, 22px);
+  flex: 2;
+}
+
+.brand {
+  margin: 0;
+  font-size: inherit;
+  margin-block-start: 10px;
+}
+
+.subtitle {
+  margin: 0;
 }
 
 .burger {
   display: inline-flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 6px;
-  background: var(--color-surface);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1)),
+    var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 30px 30px 5px 5px;
+  position: relative;
+  overflow: visible;
+  transform: rotate(15deg);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  flex: 1;
 }
 
-.burgerLine {
+.burger::before {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: 50%;
   width: 20px;
-  height: 2px;
+  height: 20px;
+  border-radius: 999px;
   background: var(--color-text);
-  display: block;
-  margin: 0 auto;
+  transform: translateX(-50%);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 25px;
 }
 
 @media (min-width: 768px) {

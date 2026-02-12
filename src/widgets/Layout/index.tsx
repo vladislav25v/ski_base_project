@@ -66,16 +66,19 @@ export const Layout = () => {
 
   return (
     <div className={styles.layout}>
-      <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((open) => !open)} />
+      <Header
+        menuOpen={menuOpen}
+        onMenuToggle={() => setMenuOpen((open) => !open)}
+        theme={theme}
+        onThemeChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+      />
       <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>
         <Outlet />
       </main>
       <Footer
         isAdmin={isAdmin}
-        theme={theme}
         onLogout={handleLogout}
-        onThemeChange={(checked) => setTheme(checked ? 'dark' : 'light')}
       />
     </div>
   )

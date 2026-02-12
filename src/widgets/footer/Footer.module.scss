@@ -1,12 +1,20 @@
 .footer {
-  padding: 20px;
+  position: relative;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 100px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
 }
 
-.themeToggle {
-  align-self: flex-start;
+.footerLoader {
+  position: block;
+  top: 12px;
+  right: 12px;
+  width: clamp(64px, 8vw, 96px);
+  height: clamp(64px, 8vw, 96px);
+  pointer-events: none;
 }

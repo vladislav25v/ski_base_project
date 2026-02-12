@@ -1,4 +1,4 @@
-import type { SyntheticEvent } from 'react'
+﻿import type { SyntheticEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../shared/ui'
@@ -86,11 +86,10 @@ export const LoginPage = () => {
     <section className={styles.page}>
       <form className={styles.card} onSubmit={handleSubmit}>
         <div>
-          <h1 className={styles.title}>Admin Login</h1>
-          <p className={styles.note}>Доступ только для администратора.</p>
+          <h1 className={styles.title}>Вход администратора</h1>
         </div>
         <label className={styles.field}>
-          <span className={styles.label}>Email</span>
+          <span className={styles.label}>Эл. почта</span>
           <input
             className={styles.input}
             type="email"
@@ -103,7 +102,7 @@ export const LoginPage = () => {
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>Password</span>
+          <span className={styles.label}>Пароль</span>
           <input
             className={styles.input}
             type="password"
@@ -117,8 +116,8 @@ export const LoginPage = () => {
         </label>
         {error && <p className={styles.error}>{error}</p>}
         <div className={styles.actions}>
-          <Button variant="solid" type="submit" disabled={!isValid || isSubmitting}>
-            {isSubmitting ? 'Logging in...' : 'Login'}
+          <Button variant="outline" uppercase type="submit" disabled={!isValid || isSubmitting}>
+            {isSubmitting ? 'Входим...' : 'Войти'}
           </Button>
         </div>
       </form>

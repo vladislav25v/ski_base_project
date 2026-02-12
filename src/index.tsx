@@ -7,7 +7,7 @@ import './index.scss'
 const rootElement = document.getElementById('root')
 
 if (!rootElement) {
-  throw new Error('Root element not found')
+  throw new Error('Корневой элемент не найден')
 }
 
 createRoot(rootElement).render(

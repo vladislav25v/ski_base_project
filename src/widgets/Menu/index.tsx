@@ -26,17 +26,17 @@ export const Menu = ({ isOpen, onClose, intro = false }: MenuProps) => {
       >
         <nav className={styles.nav}>
           <Link className={styles.navLink} to="/" onClick={onClose}>
-            Home
+            Главная
           </Link>
           <Link className={styles.navLink} to="/news" onClick={onClose}>
-            News
+            Новости
           </Link>
           <Link className={styles.navLink} to="/calendar" onClick={onClose}>
-            Calendar
+            Календарь
           </Link>
         </nav>
         <Button className={styles.menuClose} uppercase onClick={onClose}>
-          Close
+          Закрыть
         </Button>
       </div>
     </div>

@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import lottie from 'lottie-web'
 import { Button } from '../../shared/ui'
 import { supabase } from '../../shared/lib'
 import styles from './News.module.scss'
+import animationData from '../../assets/loaders/animation (2).json'
+import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
 
 type NewsItem = {
   id: number
@@ -14,10 +17,12 @@ type NewsItem = {
 const initialNews: NewsItem[] = []
 
 const sortByNewest = (items: NewsItem[]) =>
-  [...items].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+  [...items].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )
 
 const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString('en-GB', {
+  new Date(value).toLocaleDateString('ru-RU', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
@@ -35,6 +40,10 @@ export const NewsPage = () => {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    document.body.dataset.theme === 'dark' ? 'dark' : 'light',
+  )
+  const loaderRef = useRef<HTMLDivElement | null>(null)
 
   const orderedNews = useMemo(() => sortByNewest(news), [news])
 
@@ -53,7 +62,7 @@ export const NewsPage = () => {
       }
 
       if (error) {
-        setFormError(error.message)
+        setFormError('Ошибка загрузки из бд')
         setIsLoading(false)
         return
       }
@@ -98,6 +107,36 @@ export const NewsPage = () => {
     }
   }, [adminUid])
 
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
+    })
+
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isLoading || !loaderRef.current) {
+      return
+    }
+
+    const animation = lottie.loadAnimation({
+      container: loaderRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: theme === 'dark' ? animationDataYellow : animationData,
+    })
+
+    return () => {
+      animation.destroy()
+    }
+  }, [isLoading, theme])
+
   const handleAddNews = () => {
     setIsCreating(true)
     setEditingId(null)
@@ -120,11 +159,11 @@ export const NewsPage = () => {
     const trimmedTitle = draftTitle.trim()
     const trimmedText = draftText.trim()
     if (!trimmedTitle) {
-      setFormError('Title is required.')
+      setFormError('Введите заголовок.')
       return
     }
     if (!trimmedText) {
-      setFormError('Text is required.')
+      setFormError('Введите текст.')
       return
     }
 
@@ -209,30 +248,36 @@ export const NewsPage = () => {
     <section className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>News</h1>
+          <h1 className={styles.title}>Новости базы</h1>
           {isAdmin && (
             <Button variant="outline" onClick={handleAddNews}>
-              Add news
+              Добавить новость
             </Button>
           )}
         </div>
-        <p className={styles.subtitle}>Latest updates from the resort.</p>
       </header>
-      {formError && !isCreating && editingId === null && <p className={styles.error}>{formError}</p>}
-      {isLoading && <p>Loading...</p>}
+      {formError && !isCreating && editingId === null && (
+        <p className={styles.error}>{formError}</p>
+      )}
+      {isLoading && (
+        <div className={styles.loader} role="status" aria-live="polite">
+          <div className={styles.loaderAnimation} ref={loaderRef} />
+          <p className={styles.loaderText}>Загрузка...</p>
+        </div>
+      )}
       {isAdmin && isCreating && (
         <article className={styles.card}>
           <div className={styles.cardHeader}>
-            <span className={styles.date}>New</span>
+            <span className={styles.date}>Новая</span>
           </div>
           {draftImageUrl && (
-            <img className={styles.image} src={draftImageUrl} alt="News" loading="lazy" />
+            <img className={styles.image} src={draftImageUrl} alt="Новость" loading="lazy" />
           )}
           {draftTitle && <h2 className={styles.cardTitle}>{draftTitle}</h2>}
           {draftText && <p className={styles.text}>{draftText}</p>}
           <div className={styles.form}>
             <label className={styles.field}>
-              <span className={styles.label}>Title</span>
+              <span className={styles.label}>Заголовок</span>
               <input
                 className={styles.input}
                 value={draftTitle}
@@ -243,7 +288,7 @@ export const NewsPage = () => {
               />
             </label>
             <label className={styles.field}>
-              <span className={styles.label}>Text</span>
+              <span className={styles.label}>Текст</span>
               <textarea
                 className={styles.textarea}
                 rows={4}
@@ -255,7 +300,7 @@ export const NewsPage = () => {
               />
             </label>
             <label className={styles.field}>
-              <span className={styles.label}>Image</span>
+              <span className={styles.label}>Изображение</span>
               <input
                 className={styles.input}
                 type="file"
@@ -278,13 +323,13 @@ export const NewsPage = () => {
             </label>
             {draftImageUrl && (
               <Button variant="text" onClick={() => setDraftImageUrl('')}>
-                Remove image
+                Убрать изображение
               </Button>
             )}
             {formError && <p className={styles.error}>{formError}</p>}
             <div className={styles.actions}>
               <Button variant="outline" onClick={() => handleSave()} disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save'}
+                {isSaving ? 'Сохранение...' : 'Сохранить'}
               </Button>
               <Button
                 variant="text"
@@ -297,7 +342,7 @@ export const NewsPage = () => {
                 }}
                 disabled={isSaving}
               >
-                Cancel
+                Отмена
               </Button>
             </div>
           </div>
@@ -315,19 +360,19 @@ export const NewsPage = () => {
                 <span className={styles.date}>{formatDate(item.createdAt)}</span>
                 {isAdmin && (
                   <Button size="compact" onClick={() => startEdit(item)}>
-                    Edit
+                    Редактировать
                   </Button>
                 )}
               </div>
               {imageSource && (
-                <img className={styles.image} src={imageSource} alt="News" loading="lazy" />
+                <img className={styles.image} src={imageSource} alt="Новость" loading="lazy" />
               )}
               <h2 className={styles.cardTitle}>{item.title}</h2>
               <p className={styles.text}>{item.text}</p>
               {isAdmin && isEditing && (
                 <div className={styles.form}>
                   <label className={styles.field}>
-                    <span className={styles.label}>Title</span>
+                    <span className={styles.label}>Заголовок</span>
                     <input
                       className={styles.input}
                       value={draftTitle}
@@ -338,7 +383,7 @@ export const NewsPage = () => {
                     />
                   </label>
                   <label className={styles.field}>
-                    <span className={styles.label}>Text</span>
+                    <span className={styles.label}>Текст</span>
                     <textarea
                       className={styles.textarea}
                       rows={4}
@@ -350,7 +395,7 @@ export const NewsPage = () => {
                     />
                   </label>
                   <label className={styles.field}>
-                    <span className={styles.label}>Image</span>
+                    <span className={styles.label}>Изображение</span>
                     <input
                       className={styles.input}
                       type="file"
@@ -373,16 +418,24 @@ export const NewsPage = () => {
                   </label>
                   {draftImageUrl && (
                     <Button variant="text" onClick={() => setDraftImageUrl('')}>
-                      Remove image
+                      Убрать изображение
                     </Button>
                   )}
                   {formError && <p className={styles.error}>{formError}</p>}
                   <div className={styles.actions}>
-                    <Button variant="outline" onClick={() => handleSave(item.id)} disabled={isSaving}>
-                      {isSaving ? 'Saving...' : 'Save'}
+                    <Button
+                      variant="outline"
+                      onClick={() => handleSave(item.id)}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? 'Сохранение...' : 'Сохранить'}
                     </Button>
-                    <Button variant="danger" onClick={() => handleDelete(item.id)} disabled={isSaving}>
-                      Delete
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDelete(item.id)}
+                      disabled={isSaving}
+                    >
+                      Удалить
                     </Button>
                   </div>
                 </div>

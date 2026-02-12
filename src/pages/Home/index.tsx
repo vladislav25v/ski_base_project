@@ -7,7 +7,7 @@ export const HomePage = () => {
         <img
           className={styles.heroImage}
           src="/PXL_20260116_044631098.jpg"
-          alt="Ski resort view"
+          alt="Вид лыжной базы"
           loading="lazy"
         />
       </div>
