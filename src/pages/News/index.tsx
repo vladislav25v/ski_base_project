@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { Button } from '../../shared/ui'
 import { supabase } from '../../shared/lib'
 import styles from './News.module.scss'
+import { NewsForm } from './NewsForm'
 import animationData from '../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
 
@@ -21,6 +22,9 @@ const sortByNewest = (items: NewsItem[]) =>
     (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   )
 
+const IMAGE_BUCKET = 'news_images'
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('ru-RU', {
     day: '2-digit',
@@ -36,16 +40,78 @@ export const NewsPage = () => {
   const [draftTitle, setDraftTitle] = useState('')
   const [draftText, setDraftText] = useState('')
   const [draftImageUrl, setDraftImageUrl] = useState('')
+  const [draftImageFile, setDraftImageFile] = useState<File | null>(null)
+  const [isImageRemoved, setIsImageRemoved] = useState(false)
+  const [originalImageUrl, setOriginalImageUrl] = useState('')
   const [formError, setFormError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [isModalClosing, setIsModalClosing] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.body.dataset.theme === 'dark' ? 'dark' : 'light',
   )
   const loaderRef = useRef<HTMLDivElement | null>(null)
+  const modalLoaderRef = useRef<HTMLDivElement | null>(null)
+  const modalRef = useRef<HTMLDivElement | null>(null)
+  const closeTimeoutRef = useRef<number | null>(null)
 
   const orderedNews = useMemo(() => sortByNewest(news), [news])
+  const isModalOpen = isCreating || editingId !== null
+  const isModalVisible = isModalOpen || isModalClosing
+  const isModalBusy = isSaving || isUploading
+  const closeDelayMs = 220
+
+  const closeCreateForm = () => {
+    setIsCreating(false)
+    setDraftTitle('')
+    setDraftText('')
+    setDraftImageUrl('')
+    setDraftImageFile(null)
+    setIsImageRemoved(false)
+    setOriginalImageUrl('')
+    setFormError('')
+    setSuccessMessage('')
+  }
+
+  const closeEditForm = () => {
+    setEditingId(null)
+    setDraftImageFile(null)
+    setIsImageRemoved(false)
+    setOriginalImageUrl('')
+    setFormError('')
+    setSuccessMessage('')
+  }
+
+  const closeModalImmediate = (shouldCloseCreate: boolean) => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+    if (shouldCloseCreate) {
+      closeCreateForm()
+    } else {
+      closeEditForm()
+    }
+  }
+
+  const requestCloseModal = () => {
+    if (isModalClosing) {
+      return
+    }
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+    setIsModalClosing(true)
+    const shouldCloseCreate = isCreating
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setIsModalClosing(false)
+      closeModalImmediate(shouldCloseCreate)
+    }, closeDelayMs)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -137,13 +203,66 @@ export const NewsPage = () => {
     }
   }, [isLoading, theme])
 
+  useEffect(() => {
+    if (!isModalBusy || !modalLoaderRef.current) {
+      return
+    }
+
+    const animation = lottie.loadAnimation({
+      container: modalLoaderRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData: theme === 'dark' ? animationDataYellow : animationData,
+    })
+
+    return () => {
+      animation.destroy()
+    }
+  }, [isModalBusy, theme])
+
+  useEffect(() => {
+    if (!isCreating && editingId === null) {
+      return
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (isSaving || isUploading) {
+        return
+      }
+      const target = event.target as Node
+      const modalNode = modalRef.current
+      if (modalNode && !modalNode.contains(target)) {
+        requestCloseModal()
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+    }
+  }, [editingId, isCreating, isSaving, isUploading, requestCloseModal])
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const handleAddNews = () => {
     setIsCreating(true)
     setEditingId(null)
     setDraftTitle('')
     setDraftText('')
     setDraftImageUrl('')
+    setDraftImageFile(null)
+    setIsImageRemoved(false)
+    setOriginalImageUrl('')
     setFormError('')
+    setSuccessMessage('')
+    setIsModalClosing(false)
   }
 
   const startEdit = (item: NewsItem) => {
@@ -152,7 +271,87 @@ export const NewsPage = () => {
     setDraftTitle(item.title)
     setDraftText(item.text)
     setDraftImageUrl(item.imageUrl ?? '')
+    setDraftImageFile(null)
+    setIsImageRemoved(false)
+    setOriginalImageUrl(item.imageUrl ?? '')
     setFormError('')
+    setSuccessMessage('')
+    setIsModalClosing(false)
+  }
+
+  const getImageValidationError = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      return 'Файл не совпадает по формату: нужно изображение.'
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      return 'Размер изображения не совпадает с лимитом 10 МБ.'
+    }
+    return ''
+  }
+
+  const getStoragePathFromUrl = (url: string) => {
+    try {
+      const parsedUrl = new URL(url)
+      const publicPrefix = `/storage/v1/object/public/${IMAGE_BUCKET}/`
+      if (parsedUrl.pathname.startsWith(publicPrefix)) {
+        return decodeURIComponent(parsedUrl.pathname.slice(publicPrefix.length))
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  const deleteImageByUrl = async (url?: string | null) => {
+    if (!url) {
+      return
+    }
+    const path = getStoragePathFromUrl(url)
+    if (!path) {
+      return
+    }
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).remove([path])
+    if (error) {
+      throw new Error(error.message || 'Ошибка удаления изображения.')
+    }
+  }
+
+  const uploadImage = async (file: File) => {
+    const extension = file.name.split('.').pop() ?? 'jpg'
+    const fileName = `news/${crypto.randomUUID()}.${extension}`
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(fileName, file, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: true,
+    })
+    if (error) {
+      const errorMessage = error.message || 'Ошибка загрузки изображения.'
+      const errorWithStatus =
+        typeof (error as { statusCode?: number }).statusCode === 'number'
+          ? `${errorMessage} (status ${(error as { statusCode?: number }).statusCode})`
+          : errorMessage
+      throw new Error(errorWithStatus)
+    }
+    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(fileName)
+    return data.publicUrl
+  }
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    const validationError = getImageValidationError(file)
+    if (validationError) {
+      setFormError(validationError)
+      event.target.value = ''
+      return
+    }
+
+    setDraftImageFile(file)
+    setIsImageRemoved(false)
+    setFormError('')
+    setSuccessMessage('')
   }
 
   const handleSave = async (id?: number) => {
@@ -168,63 +367,105 @@ export const NewsPage = () => {
     }
 
     setIsSaving(true)
-    const payload = {
-      title: trimmedTitle,
-      text: trimmedText,
-      image_url: draftImageUrl.trim() ? draftImageUrl.trim() : null,
-    }
-
-    if (isCreating) {
-      const { data, error } = await supabase.from('news').insert(payload).select().single()
-      if (error) {
-        setFormError(error.message)
-        setIsSaving(false)
-        return
-      }
-      if (data) {
-        setNews((current) => [
-          {
-            id: data.id,
-            createdAt: data.created_at,
-            title: data.title,
-            text: data.text,
-            imageUrl: data.image_url,
-          },
-          ...current,
-        ])
-      }
-      setIsCreating(false)
-    } else if (typeof id === 'number') {
-      const { data, error } = await supabase
-        .from('news')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (error) {
-        setFormError(error.message)
-        setIsSaving(false)
-        return
-      }
-
-      setNews((current) =>
-        current.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                title: data.title,
-                text: data.text,
-                imageUrl: data.image_url,
-              }
-            : item,
-        ),
-      )
-      setEditingId(null)
-    }
-
     setFormError('')
-    setIsSaving(false)
+    setSuccessMessage('')
+    let imageUrl = draftImageUrl.trim() ? draftImageUrl.trim() : ''
+    const previousImageUrl = isCreating ? '' : originalImageUrl
+    let uploadedImageUrl = ''
+
+    try {
+      if (draftImageFile) {
+        const validationError = getImageValidationError(draftImageFile)
+        if (validationError) {
+          setFormError(validationError)
+          setIsSaving(false)
+          return
+        }
+        setIsUploading(true)
+        uploadedImageUrl = await uploadImage(draftImageFile)
+        imageUrl = uploadedImageUrl
+        setIsUploading(false)
+      } else if (isImageRemoved) {
+        imageUrl = ''
+      }
+
+      const payload = {
+        title: trimmedTitle,
+        text: trimmedText,
+        image_url: imageUrl ? imageUrl : null,
+      }
+
+      if (isCreating) {
+        const { data, error } = await supabase.from('news').insert(payload).select().single()
+        if (error) {
+          setFormError(error.message)
+          if (uploadedImageUrl) {
+            await deleteImageByUrl(uploadedImageUrl)
+          }
+          setIsSaving(false)
+          return
+        }
+        if (data) {
+          setNews((current) => [
+            {
+              id: data.id,
+              createdAt: data.created_at,
+              title: data.title,
+              text: data.text,
+              imageUrl: data.image_url,
+            },
+            ...current,
+          ])
+        }
+      } else if (typeof id === 'number') {
+        const { data, error } = await supabase
+          .from('news')
+          .update(payload)
+          .eq('id', id)
+          .select()
+          .single()
+
+        if (error) {
+          setFormError(error.message)
+          if (uploadedImageUrl) {
+            await deleteImageByUrl(uploadedImageUrl)
+          }
+          setIsSaving(false)
+          return
+        }
+
+        setNews((current) =>
+          current.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  title: data.title,
+                  text: data.text,
+                  imageUrl: data.image_url,
+                }
+              : item,
+          ),
+        )
+      }
+
+      if (previousImageUrl && previousImageUrl !== imageUrl && (draftImageFile || isImageRemoved)) {
+        await deleteImageByUrl(previousImageUrl)
+      }
+
+      setSuccessMessage('Успешно')
+      setDraftImageFile(null)
+      setIsImageRemoved(false)
+      setDraftImageUrl(imageUrl)
+      setIsSaving(false)
+      closeTimeoutRef.current = window.setTimeout(() => {
+        requestCloseModal()
+      }, 1000)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Ошибка сохранения.'
+      setFormError(message)
+      setIsSaving(false)
+      setIsUploading(false)
+    }
   }
 
   const handleDelete = async (id: number) => {
@@ -238,212 +479,137 @@ export const NewsPage = () => {
 
     setNews((current) => current.filter((item) => item.id !== id))
     if (editingId === id) {
-      setEditingId(null)
       setFormError('')
     }
+    if (originalImageUrl) {
+      try {
+        await deleteImageByUrl(originalImageUrl)
+      } catch (deleteError) {
+        const message =
+          deleteError instanceof Error ? deleteError.message : 'Ошибка удаления изображения.'
+        setFormError(message)
+        setIsSaving(false)
+        return
+      }
+    }
+    setSuccessMessage('Успешно')
     setIsSaving(false)
+    closeTimeoutRef.current = window.setTimeout(() => {
+      requestCloseModal()
+    }, 1000)
   }
 
   return (
     <section className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>Новости базы</h1>
+          <h1 className={styles.title}>{'Новости базы'}</h1>
           {isAdmin && (
             <Button variant="outline" onClick={handleAddNews}>
-              Добавить новость
+              {'Добавить новость'}
             </Button>
           )}
         </div>
       </header>
       {formError && !isCreating && editingId === null && (
-        <p className={styles.error}>{formError}</p>
+        <p className={styles.pageError}>{formError}</p>
       )}
       {isLoading && (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
-          <p className={styles.loaderText}>Загрузка...</p>
+          <p className={styles.loaderText}>{'Загрузка...'}</p>
         </div>
-      )}
-      {isAdmin && isCreating && (
-        <article className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={styles.date}>Новая</span>
-          </div>
-          {draftImageUrl && (
-            <img className={styles.image} src={draftImageUrl} alt="Новость" loading="lazy" />
-          )}
-          {draftTitle && <h2 className={styles.cardTitle}>{draftTitle}</h2>}
-          {draftText && <p className={styles.text}>{draftText}</p>}
-          <div className={styles.form}>
-            <label className={styles.field}>
-              <span className={styles.label}>Заголовок</span>
-              <input
-                className={styles.input}
-                value={draftTitle}
-                onChange={(event) => {
-                  setDraftTitle(event.target.value)
-                  setFormError('')
-                }}
-              />
-            </label>
-            <label className={styles.field}>
-              <span className={styles.label}>Текст</span>
-              <textarea
-                className={styles.textarea}
-                rows={4}
-                value={draftText}
-                onChange={(event) => {
-                  setDraftText(event.target.value)
-                  setFormError('')
-                }}
-              />
-            </label>
-            <label className={styles.field}>
-              <span className={styles.label}>Изображение</span>
-              <input
-                className={styles.input}
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  if (!file) {
-                    return
-                  }
-                  const reader = new FileReader()
-                  reader.onload = () => {
-                    const result = reader.result
-                    if (typeof result === 'string') {
-                      setDraftImageUrl(result)
-                    }
-                  }
-                  reader.readAsDataURL(file)
-                }}
-              />
-            </label>
-            {draftImageUrl && (
-              <Button variant="text" onClick={() => setDraftImageUrl('')}>
-                Убрать изображение
-              </Button>
-            )}
-            {formError && <p className={styles.error}>{formError}</p>}
-            <div className={styles.actions}>
-              <Button variant="outline" onClick={() => handleSave()} disabled={isSaving}>
-                {isSaving ? 'Сохранение...' : 'Сохранить'}
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => {
-                  setIsCreating(false)
-                  setDraftTitle('')
-                  setDraftText('')
-                  setDraftImageUrl('')
-                  setFormError('')
-                }}
-                disabled={isSaving}
-              >
-                Отмена
-              </Button>
-            </div>
-          </div>
-        </article>
       )}
       <div className={styles.list}>
         {orderedNews.map((item) => {
           const isEditing = editingId === item.id
 
-          const imageSource = isEditing ? draftImageUrl : item.imageUrl
+          const imageSource = item.imageUrl
 
           return (
             <article className={styles.card} key={item.id}>
               <div className={styles.cardHeader}>
                 <span className={styles.date}>{formatDate(item.createdAt)}</span>
                 {isAdmin && (
-                  <Button size="compact" onClick={() => startEdit(item)}>
-                    Редактировать
+                  <Button size="compact" onClick={() => startEdit(item)} disabled={isEditing}>
+                    {'Редактировать'}
                   </Button>
                 )}
               </div>
               {imageSource && (
-                <img className={styles.image} src={imageSource} alt="Новость" loading="lazy" />
+                <img className={styles.image} src={imageSource} alt={'Новость'} loading="lazy" />
               )}
               <h2 className={styles.cardTitle}>{item.title}</h2>
               <p className={styles.text}>{item.text}</p>
-              {isAdmin && isEditing && (
-                <div className={styles.form}>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Заголовок</span>
-                    <input
-                      className={styles.input}
-                      value={draftTitle}
-                      onChange={(event) => {
-                        setDraftTitle(event.target.value)
-                        setFormError('')
-                      }}
-                    />
-                  </label>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Текст</span>
-                    <textarea
-                      className={styles.textarea}
-                      rows={4}
-                      value={draftText}
-                      onChange={(event) => {
-                        setDraftText(event.target.value)
-                        setFormError('')
-                      }}
-                    />
-                  </label>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Изображение</span>
-                    <input
-                      className={styles.input}
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0]
-                        if (!file) {
-                          return
-                        }
-                        const reader = new FileReader()
-                        reader.onload = () => {
-                          const result = reader.result
-                          if (typeof result === 'string') {
-                            setDraftImageUrl(result)
-                          }
-                        }
-                        reader.readAsDataURL(file)
-                      }}
-                    />
-                  </label>
-                  {draftImageUrl && (
-                    <Button variant="text" onClick={() => setDraftImageUrl('')}>
-                      Убрать изображение
-                    </Button>
-                  )}
-                  {formError && <p className={styles.error}>{formError}</p>}
-                  <div className={styles.actions}>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleSave(item.id)}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? 'Сохранение...' : 'Сохранить'}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => handleDelete(item.id)}
-                      disabled={isSaving}
-                    >
-                      Удалить
-                    </Button>
-                  </div>
-                </div>
-              )}
             </article>
           )
         })}
       </div>
+      {isAdmin && isModalVisible && (
+        <div
+          className={`${styles.modalOverlay} ${
+            isModalClosing ? styles.modalOverlayClosing : styles.modalOverlayOpen
+          }`}
+        >
+          <div
+            className={`${styles.modal} ${isModalClosing ? styles.modalClosing : styles.modalOpen}`}
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>
+                {isCreating ? 'Новая новость' : 'Редактирование новости'}
+              </h2>
+              <button
+                className={styles.modalClose}
+                type="button"
+                onClick={requestCloseModal}
+                disabled={isModalBusy}
+                aria-label="Закрыть"
+              >
+                {'X'}
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {isModalBusy && (
+                <div className={styles.modalLoader} role="status" aria-live="polite">
+                  <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
+                  <span>{'Загрузка...'}</span>
+                </div>
+              )}
+              {successMessage && <p className={styles.success}>{successMessage}</p>}
+              <NewsForm
+                title={draftTitle}
+                text={draftText}
+                hasImage={Boolean(draftImageUrl || draftImageFile)}
+                formError={formError}
+                isSaving={isSaving}
+                isUploading={isUploading}
+                onTitleChange={(value) => {
+                  setDraftTitle(value)
+                  setFormError('')
+                  setSuccessMessage('')
+                }}
+                onTextChange={(value) => {
+                  setDraftText(value)
+                  setFormError('')
+                  setSuccessMessage('')
+                }}
+                onImageChange={handleImageChange}
+                onRemoveImage={() => {
+                  setDraftImageUrl('')
+                  setDraftImageFile(null)
+                  setIsImageRemoved(true)
+                }}
+                onSave={() => handleSave(editingId ?? undefined)}
+                onCancel={requestCloseModal}
+                onDelete={typeof editingId === 'number' ? () => handleDelete(editingId) : undefined}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

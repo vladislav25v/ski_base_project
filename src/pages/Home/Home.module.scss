@@ -3,15 +3,36 @@
   gap: 24px;
 }
 
-.hero {
-  width: calc(95%);
+.contentWidth {
+  width: 100%;
   margin: 0 auto;
+}
+
+.intro {
+  display: grid;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(26px, 2vw + 16px, 34px);
+  letter-spacing: 0.02em;
+}
+
+.text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.hero {
   overflow: hidden;
 }
 
 .heroImage {
   width: 100%;
-  height: clamp(260px, 55vh, 520px);
+  height: 40dvh;
   object-fit: cover;
   display: block;
   clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);
@@ -19,6 +40,15 @@
   opacity: 0;
   animation: rise 700ms ease-out forwards;
   animation-delay: 150ms;
+  border-radius: 20px;
+}
+
+.mapFrame {
+  position: relative;
+  width: 100%;
+  height: min(440px, 60vh);
+  border-radius: 20px;
+  border-color: 0;
 }
 
 @keyframes rise {

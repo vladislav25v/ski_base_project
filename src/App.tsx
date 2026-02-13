@@ -4,6 +4,11 @@ import { HomePage } from './pages/Home'
 import { NewsPage } from './pages/News'
 import { CalendarPage } from './pages/Calendar'
 import { LoginPage } from './pages/Login'
+import { TracksSchemePage } from './pages/TracksScheme'
+import { RentalPage } from './pages/Rental'
+import { GalleryPage } from './pages/Gallery'
+import { ProtocolsPage } from './pages/Protocols'
+import { AboutPage } from './pages/About'
 
 export const App = () => {
   return (
@@ -12,6 +17,11 @@ export const App = () => {
         <Route index element={<HomePage />} />
         <Route path="news" element={<NewsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="tracks-scheme" element={<TracksSchemePage />} />
+        <Route path="rental" element={<RentalPage />} />
+        <Route path="gallery" element={<GalleryPage />} />
+        <Route path="protocols" element={<ProtocolsPage />} />
+        <Route path="about" element={<AboutPage />} />
         <Route path="login" element={<Navigate to="/admin" replace />} />
         <Route path="admin" element={<LoginPage />} />
       </Route>

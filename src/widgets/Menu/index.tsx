@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
 import { Button } from '../../shared/ui'
 import styles from './Menu.module.scss'
 
@@ -33,6 +33,21 @@ export const Menu = ({ isOpen, onClose, intro = false }: MenuProps) => {
           </Link>
           <Link className={styles.navLink} to="/calendar" onClick={onClose}>
             Календарь
+          </Link>
+          <Link className={styles.navLink} to="/tracks-scheme" onClick={onClose}>
+            Схема трасс
+          </Link>
+          <Link className={styles.navLink} to="/rental" onClick={onClose}>
+            Прокат
+          </Link>
+          <Link className={styles.navLink} to="/gallery" onClick={onClose}>
+            Галерея
+          </Link>
+          <Link className={styles.navLink} to="/protocols" onClick={onClose}>
+            Протоколы
+          </Link>
+          <Link className={styles.navLink} to="/about" onClick={onClose}>
+            О базе
           </Link>
         </nav>
         <Button className={styles.menuClose} uppercase onClick={onClose}>

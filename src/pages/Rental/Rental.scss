@@ -1,0 +1,37 @@
+.page {
+  display: grid;
+  gap: 24px;
+}
+
+.hero {
+  width: calc(95%);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.heroImage {
+  width: 100%;
+
+  object-fit: cover;
+  display: block;
+  clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);
+  transform: translateY(32px);
+  opacity: 0;
+  animation: rise 700ms ease-out forwards;
+  animation-delay: 150ms;
+}
+
+@keyframes rise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroImage {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+}
