@@ -6,6 +6,10 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  transform: translateY(32px);
+  opacity: 0;
+  animation: rise 700ms ease-out forwards;
+  animation-delay: 150ms;
 }
 
 .header {
@@ -107,5 +111,20 @@
 @media (max-width: 720px) {
   .listItem {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes rise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section {
+    animation: none;
+    transform: none;
+    opacity: 1;
   }
 }

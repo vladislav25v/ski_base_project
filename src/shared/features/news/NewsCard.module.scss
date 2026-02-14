@@ -7,6 +7,12 @@
   flex-direction: column;
   gap: 16px;
   box-shadow: 0 18px 45px -35px rgba(11, 27, 43, 0.6);
+  text-decoration: none;
+  color: inherit;
+  transform: translateY(32px);
+  opacity: 0;
+  animation: rise 700ms ease-out forwards;
+  animation-delay: 150ms;
 }
 
 .cardHeader {
@@ -44,5 +50,20 @@
 @media (max-width: 720px) {
   .image {
     height: 200px;
+  }
+}
+
+@keyframes rise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+    transform: none;
+    opacity: 1;
   }
 }
