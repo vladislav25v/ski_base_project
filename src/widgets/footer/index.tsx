@@ -62,7 +62,6 @@ export const Footer = ({ isAdmin, onLogout }: FooterProps) => {
           Кнопка директора
         </Link>
       )}
-      <div className={styles.footerLoader} aria-hidden ref={loaderRef} />
     </footer>
   )
 }

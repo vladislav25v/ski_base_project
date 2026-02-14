@@ -1,0 +1,1 @@
+export { NewsForm } from './NewsForm'

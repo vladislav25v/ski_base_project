@@ -1,19 +1,13 @@
 ﻿import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
-import { Button } from '../../shared/ui'
+import { Button, FormModal, NewsForm, useModalClosing } from '../../shared/ui'
 import { supabase } from '../../shared/lib'
+import type { NewsItem } from '../../shared/model'
 import styles from './News.module.scss'
-import { NewsForm } from './NewsForm'
+import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
 import animationData from '../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
-
-type NewsItem = {
-  id: number
-  createdAt: string
-  title: string
-  text: string
-  imageUrl?: string | null
-}
+import { NewsCard } from '../../shared/features/news/NewsCard'
 
 const initialNews: NewsItem[] = []
 
@@ -45,7 +39,6 @@ export const NewsPage = () => {
   const [originalImageUrl, setOriginalImageUrl] = useState('')
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [isModalClosing, setIsModalClosing] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -55,12 +48,10 @@ export const NewsPage = () => {
   )
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
-  const modalRef = useRef<HTMLDivElement | null>(null)
-  const closeTimeoutRef = useRef<number | null>(null)
+  const successCloseTimeoutRef = useRef<number | null>(null)
 
   const orderedNews = useMemo(() => sortByNewest(news), [news])
   const isModalOpen = isCreating || editingId !== null
-  const isModalVisible = isModalOpen || isModalClosing
   const isModalBusy = isSaving || isUploading
   const closeDelayMs = 220
 
@@ -85,33 +76,24 @@ export const NewsPage = () => {
     setSuccessMessage('')
   }
 
-  const closeModalImmediate = (shouldCloseCreate: boolean) => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current)
-      closeTimeoutRef.current = null
-    }
-    if (shouldCloseCreate) {
+  const closeModalImmediate = () => {
+    if (isCreating) {
       closeCreateForm()
     } else {
       closeEditForm()
     }
   }
 
-  const requestCloseModal = () => {
-    if (isModalClosing) {
-      return
-    }
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current)
-      closeTimeoutRef.current = null
-    }
-    setIsModalClosing(true)
-    const shouldCloseCreate = isCreating
-    closeTimeoutRef.current = window.setTimeout(() => {
-      setIsModalClosing(false)
-      closeModalImmediate(shouldCloseCreate)
-    }, closeDelayMs)
-  }
+  const {
+    isVisible: isModalVisible,
+    isClosing: isModalClosing,
+    requestClose: requestCloseModal,
+  } = useModalClosing({
+    isOpen: isModalOpen,
+    isBusy: isModalBusy,
+    closeDelayMs,
+    onClose: closeModalImmediate,
+  })
 
   useEffect(() => {
     let isMounted = true
@@ -128,7 +110,7 @@ export const NewsPage = () => {
       }
 
       if (error) {
-        setFormError('Ошибка загрузки из бд')
+        setFormError('Ошибка загрузки данных')
         setIsLoading(false)
         return
       }
@@ -222,36 +204,19 @@ export const NewsPage = () => {
   }, [isModalBusy, theme])
 
   useEffect(() => {
-    if (!isCreating && editingId === null) {
-      return
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (isSaving || isUploading) {
-        return
-      }
-      const target = event.target as Node
-      const modalNode = modalRef.current
-      if (modalNode && !modalNode.contains(target)) {
-        requestCloseModal()
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-    }
-  }, [editingId, isCreating, isSaving, isUploading, requestCloseModal])
-
-  useEffect(() => {
-    return () => {
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current)
+      if (successCloseTimeoutRef.current !== null) {
+        window.clearTimeout(successCloseTimeoutRef.current)
+        successCloseTimeoutRef.current = null
       }
     }
   }, [])
 
   const handleAddNews = () => {
+    if (successCloseTimeoutRef.current !== null) {
+      window.clearTimeout(successCloseTimeoutRef.current)
+      successCloseTimeoutRef.current = null
+    }
     setIsCreating(true)
     setEditingId(null)
     setDraftTitle('')
@@ -262,10 +227,13 @@ export const NewsPage = () => {
     setOriginalImageUrl('')
     setFormError('')
     setSuccessMessage('')
-    setIsModalClosing(false)
   }
 
   const startEdit = (item: NewsItem) => {
+    if (successCloseTimeoutRef.current !== null) {
+      window.clearTimeout(successCloseTimeoutRef.current)
+      successCloseTimeoutRef.current = null
+    }
     setEditingId(item.id)
     setIsCreating(false)
     setDraftTitle(item.title)
@@ -276,7 +244,6 @@ export const NewsPage = () => {
     setOriginalImageUrl(item.imageUrl ?? '')
     setFormError('')
     setSuccessMessage('')
-    setIsModalClosing(false)
   }
 
   const getImageValidationError = (file: File) => {
@@ -457,7 +424,10 @@ export const NewsPage = () => {
       setIsImageRemoved(false)
       setDraftImageUrl(imageUrl)
       setIsSaving(false)
-      closeTimeoutRef.current = window.setTimeout(() => {
+      if (successCloseTimeoutRef.current !== null) {
+        window.clearTimeout(successCloseTimeoutRef.current)
+      }
+      successCloseTimeoutRef.current = window.setTimeout(() => {
         requestCloseModal()
       }, 1000)
     } catch (error) {
@@ -494,7 +464,10 @@ export const NewsPage = () => {
     }
     setSuccessMessage('Успешно')
     setIsSaving(false)
-    closeTimeoutRef.current = window.setTimeout(() => {
+    if (successCloseTimeoutRef.current !== null) {
+      window.clearTimeout(successCloseTimeoutRef.current)
+    }
+    successCloseTimeoutRef.current = window.setTimeout(() => {
       requestCloseModal()
     }, 1000)
   }
@@ -524,91 +497,61 @@ export const NewsPage = () => {
         {orderedNews.map((item) => {
           const isEditing = editingId === item.id
 
-          const imageSource = item.imageUrl
-
           return (
-            <article className={styles.card} key={item.id}>
-              <div className={styles.cardHeader}>
-                <span className={styles.date}>{formatDate(item.createdAt)}</span>
-                {isAdmin && (
-                  <Button size="compact" onClick={() => startEdit(item)} disabled={isEditing}>
-                    {'Редактировать'}
-                  </Button>
-                )}
-              </div>
-              {imageSource && (
-                <img className={styles.image} src={imageSource} alt={'Новость'} loading="lazy" />
-              )}
-              <h2 className={styles.cardTitle}>{item.title}</h2>
-              <p className={styles.text}>{item.text}</p>
-            </article>
+            <NewsCard
+              key={item.id}
+              item={item}
+              dateLabel={formatDate(item.createdAt)}
+              isAdmin={isAdmin}
+              isEditing={isEditing}
+              onEdit={() => startEdit(item)}
+            />
           )
         })}
       </div>
-      {isAdmin && isModalVisible && (
-        <div
-          className={`${styles.modalOverlay} ${
-            isModalClosing ? styles.modalOverlayClosing : styles.modalOverlayOpen
-          }`}
+      {isAdmin && (
+        <FormModal
+          title={isCreating ? 'Новая новость' : 'Редактирование новости'}
+          isVisible={isModalVisible}
+          isClosing={isModalClosing}
+          isBusy={isModalBusy}
+          onRequestClose={requestCloseModal}
         >
-          <div
-            className={`${styles.modal} ${isModalClosing ? styles.modalClosing : styles.modalOpen}`}
-            ref={modalRef}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
-                {isCreating ? 'Новая новость' : 'Редактирование новости'}
-              </h2>
-              <button
-                className={styles.modalClose}
-                type="button"
-                onClick={requestCloseModal}
-                disabled={isModalBusy}
-                aria-label="Закрыть"
-              >
-                {'X'}
-              </button>
+          {isModalBusy && (
+            <div className={styles.modalLoader} role="status" aria-live="polite">
+              <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
+              <span>{'Загрузка...'}</span>
             </div>
-            <div className={styles.modalBody}>
-              {isModalBusy && (
-                <div className={styles.modalLoader} role="status" aria-live="polite">
-                  <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
-                  <span>{'Загрузка...'}</span>
-                </div>
-              )}
-              {successMessage && <p className={styles.success}>{successMessage}</p>}
-              <NewsForm
-                title={draftTitle}
-                text={draftText}
-                hasImage={Boolean(draftImageUrl || draftImageFile)}
-                formError={formError}
-                isSaving={isSaving}
-                isUploading={isUploading}
-                onTitleChange={(value) => {
-                  setDraftTitle(value)
-                  setFormError('')
-                  setSuccessMessage('')
-                }}
-                onTextChange={(value) => {
-                  setDraftText(value)
-                  setFormError('')
-                  setSuccessMessage('')
-                }}
-                onImageChange={handleImageChange}
-                onRemoveImage={() => {
-                  setDraftImageUrl('')
-                  setDraftImageFile(null)
-                  setIsImageRemoved(true)
-                }}
-                onSave={() => handleSave(editingId ?? undefined)}
-                onCancel={requestCloseModal}
-                onDelete={typeof editingId === 'number' ? () => handleDelete(editingId) : undefined}
-              />
-            </div>
-          </div>
-        </div>
+          )}
+          {successMessage && <p className={formStyles.success}>{successMessage}</p>}
+          <NewsForm
+            title={draftTitle}
+            text={draftText}
+            hasImage={Boolean(draftImageUrl || draftImageFile)}
+            formError={formError}
+            isSaving={isSaving}
+            isUploading={isUploading}
+            onTitleChange={(value) => {
+              setDraftTitle(value)
+              setFormError('')
+              setSuccessMessage('')
+            }}
+            onTextChange={(value) => {
+              setDraftText(value)
+              setFormError('')
+              setSuccessMessage('')
+            }}
+            onImageChange={handleImageChange}
+            onRemoveImage={() => {
+              setDraftImageUrl('')
+              setDraftImageFile(null)
+              setIsImageRemoved(true)
+            }}
+            onSave={() => handleSave(editingId ?? undefined)}
+            onCancel={requestCloseModal}
+            onDelete={typeof editingId === 'number' ? () => handleDelete(editingId) : undefined}
+          />
+        </FormModal>
       )}
     </section>
   )

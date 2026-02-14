@@ -1,0 +1,77 @@
+.form {
+  border-top: none;
+  padding-top: 0;
+}
+
+.formHint {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.formList {
+  display: grid;
+  gap: 12px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) repeat(2, minmax(120px, 0.7fr)) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.checkboxLabel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.checkboxLabel input {
+  width: 18px;
+  height: 18px;
+}
+
+.timeField {
+  display: grid;
+  gap: 6px;
+}
+
+.timeCaption {
+  font-size: 12px;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.timeInput {
+  width: 100%;
+}
+
+.timeInput:disabled {
+  opacity: 0.6;
+}
+
+.offLabel {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.formActions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    justify-content: stretch;
+  }
+}

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../shared/ui'
 import { supabase } from '../../shared/lib'
+import type { AuthCredentials } from '../../shared/model'
 import styles from './Login.module.scss'
 
 const emailPattern = /^\S+@\S+\.\S+$/
@@ -61,10 +62,11 @@ export const LoginPage = () => {
     }
 
     setIsSubmitting(true)
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    const credentials: AuthCredentials = {
       email: trimmedEmail,
       password: trimmedPassword,
-    })
+    }
+    const { data, error: signInError } = await supabase.auth.signInWithPassword(credentials)
     if (signInError) {
       setError(signInError.message)
       setIsSubmitting(false)

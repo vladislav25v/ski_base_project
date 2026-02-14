@@ -1,6 +1,6 @@
-﻿import { type ChangeEvent, forwardRef } from 'react'
-import { Button } from '../../shared/ui'
-import styles from './NewsForm.module.scss'
+import { type ChangeEvent, forwardRef } from 'react'
+import { Button } from '../../button'
+import formStyles from '../commonForm/CommonForm.module.scss'
 
 type NewsFormProps = {
   title: string
@@ -37,39 +37,42 @@ export const NewsForm = forwardRef<HTMLDivElement, NewsFormProps>(
     },
     ref,
   ) => (
-    <div className={styles.form} ref={ref}>
-      <label className={styles.field}>
-        <span className={styles.label}>{'Заголовок'}</span>
+    <div className={formStyles.form} ref={ref}>
+      <label className={formStyles.field}>
+        <span className={formStyles.label}>{'Заголовок'}</span>
         <input
-          className={styles.input}
+          className={formStyles.input}
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
         />
       </label>
-      <label className={styles.field}>
-        <span className={styles.label}>{'Текст'}</span>
+      <label className={formStyles.field}>
+        <span className={formStyles.label}>{'Текст'}</span>
         <textarea
-          className={styles.textarea}
+          className={formStyles.textarea}
           rows={4}
           value={text}
           onChange={(event) => onTextChange(event.target.value)}
         />
       </label>
-      <label className={styles.field}>
-        <span className={styles.label}>{'Изображение'}</span>
-        <input className={styles.input} type="file" accept="image/*" onChange={onImageChange} />
+      <label className={formStyles.field}>
+        <span className={formStyles.label}>{'Изображение'}</span>
+        <input
+          className={formStyles.input}
+          type="file"
+          accept="image/*"
+          onChange={onImageChange}
+        />
       </label>
       {hasImage && (
         <Button variant="text" onClick={onRemoveImage}>
           {'Убрать изображение'}
         </Button>
       )}
-      {formError && <p className={styles.error}>{formError}</p>}
-      <div className={styles.actions}>
+      {formError && <p className={formStyles.error}>{formError}</p>}
+      <div className={formStyles.actions}>
         <Button variant="outline" onClick={onSave} disabled={isSaving || isUploading}>
-          {isSaving || isUploading
-            ? 'Сохранение...'
-            : 'Сохранить'}
+          {isSaving || isUploading ? 'Сохранение...' : 'Сохранить'}
         </Button>
         {onDelete ? (
           <Button variant="danger" onClick={onDelete} disabled={isSaving || isUploading}>
@@ -86,4 +89,3 @@ export const NewsForm = forwardRef<HTMLDivElement, NewsFormProps>(
 )
 
 NewsForm.displayName = 'NewsForm'
-
