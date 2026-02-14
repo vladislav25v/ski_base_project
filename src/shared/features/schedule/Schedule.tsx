@@ -33,6 +33,8 @@ const buildDefaultSchedule = (): ScheduleDay[] =>
     endTime: DEFAULT_END_TIME,
   }))
 
+const normalizeTime = (value?: string | null) => (value ? value.slice(0, 5) : '')
+
 const mergeSchedule = (rows: ScheduleDayRecord[]): ScheduleDay[] => {
   const rowMap = new Map(rows.map((row) => [row.day_of_week, row]))
 
@@ -43,8 +45,8 @@ const mergeSchedule = (rows: ScheduleDayRecord[]): ScheduleDay[] => {
       dayOfWeek: day.id,
       label: day.label,
       isOpen: row?.is_open ?? false,
-      startTime: row?.start_time ?? DEFAULT_START_TIME,
-      endTime: row?.end_time ?? DEFAULT_END_TIME,
+      startTime: row?.start_time ? normalizeTime(row.start_time) : DEFAULT_START_TIME,
+      endTime: row?.end_time ? normalizeTime(row.end_time) : DEFAULT_END_TIME,
     }
   })
 }
@@ -56,11 +58,15 @@ const mapRowToDisplayDay = (row: ScheduleDayRecord): ScheduleDay => ({
   dayOfWeek: row.day_of_week,
   label: getDayLabel(row.day_of_week),
   isOpen: row.is_open,
-  startTime: row.start_time ?? '',
-  endTime: row.end_time ?? '',
+  startTime: normalizeTime(row.start_time),
+  endTime: normalizeTime(row.end_time),
 })
 
-export const ScheduleSection = () => {
+type ScheduleSectionProps = {
+  title?: string
+}
+
+export const ScheduleSection = ({ title = 'График работы' }: ScheduleSectionProps) => {
   const [days, setDays] = useState<ScheduleDay[]>(() => buildDefaultSchedule())
   const [displayDays, setDisplayDays] = useState<ScheduleDay[]>([])
   const [hasScheduleData, setHasScheduleData] = useState(false)
@@ -303,7 +309,7 @@ export const ScheduleSection = () => {
     <section className={styles.section}>
       <header className={styles.header}>
         <div>
-          <h2 className={styles.title}>{'График работы'}</h2>
+          <h2 className={styles.title}>{title}</h2>
         </div>
         {isAdmin && (
           <Button variant="outline" onClick={handleOpenEdit}>
