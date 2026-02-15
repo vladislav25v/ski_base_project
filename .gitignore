@@ -16,6 +16,14 @@ dist-ssr
 .eslintcache
 *.tsbuildinfo
 stats.html
+.env.local
+.env.*.local
+
+# Supabase local/dev artifacts
+supabase/.temp/
+supabase/.branches/
+supabase/.cache/
+supabase/.env*
 
 # Editor directories and files
 .vscode/*

@@ -284,8 +284,8 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
       end_time: day.isOpen ? day.endTime : null,
     }))
 
-    const { error } = await supabase.from('schedule').upsert(payload, {
-      onConflict: 'day_of_week',
+    const { error } = await supabase.functions.invoke('schedule-upsert', {
+      body: { days: payload },
     })
 
     if (error) {

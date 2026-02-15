@@ -30,3 +30,13 @@ export type ScheduleDay = {
 }
 
 export type ScheduleFormDay = ScheduleDay
+
+export type GalleryPicture = {
+  id: string
+  createdAt: string
+  storagePath: string
+  caption?: string | null
+  width?: number | null
+  height?: number | null
+  blurhash?: string | null
+}

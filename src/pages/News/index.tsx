@@ -16,9 +16,6 @@ const sortByNewest = (items: NewsItem[]) =>
     (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   )
 
-const IMAGE_BUCKET = 'news_images'
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024
-
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('ru-RU', {
     day: '2-digit',
@@ -36,12 +33,12 @@ export const NewsPage = () => {
   const [draftImageUrl, setDraftImageUrl] = useState('')
   const [draftImageFile, setDraftImageFile] = useState<File | null>(null)
   const [isImageRemoved, setIsImageRemoved] = useState(false)
-  const [originalImageUrl, setOriginalImageUrl] = useState('')
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.body.dataset.theme === 'dark' ? 'dark' : 'light',
@@ -62,18 +59,18 @@ export const NewsPage = () => {
     setDraftImageUrl('')
     setDraftImageFile(null)
     setIsImageRemoved(false)
-    setOriginalImageUrl('')
     setFormError('')
     setSuccessMessage('')
+    setIsDeleting(false)
   }
 
   const closeEditForm = () => {
     setEditingId(null)
     setDraftImageFile(null)
     setIsImageRemoved(false)
-    setOriginalImageUrl('')
     setFormError('')
     setSuccessMessage('')
+    setIsDeleting(false)
   }
 
   const closeModalImmediate = () => {
@@ -224,7 +221,6 @@ export const NewsPage = () => {
     setDraftImageUrl('')
     setDraftImageFile(null)
     setIsImageRemoved(false)
-    setOriginalImageUrl('')
     setFormError('')
     setSuccessMessage('')
   }
@@ -241,77 +237,13 @@ export const NewsPage = () => {
     setDraftImageUrl(item.imageUrl ?? '')
     setDraftImageFile(null)
     setIsImageRemoved(false)
-    setOriginalImageUrl(item.imageUrl ?? '')
     setFormError('')
     setSuccessMessage('')
-  }
-
-  const getImageValidationError = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      return 'Файл не совпадает по формату: нужно изображение.'
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return 'Размер изображения не совпадает с лимитом 10 МБ.'
-    }
-    return ''
-  }
-
-  const getStoragePathFromUrl = (url: string) => {
-    try {
-      const parsedUrl = new URL(url)
-      const publicPrefix = `/storage/v1/object/public/${IMAGE_BUCKET}/`
-      if (parsedUrl.pathname.startsWith(publicPrefix)) {
-        return decodeURIComponent(parsedUrl.pathname.slice(publicPrefix.length))
-      }
-      return null
-    } catch {
-      return null
-    }
-  }
-
-  const deleteImageByUrl = async (url?: string | null) => {
-    if (!url) {
-      return
-    }
-    const path = getStoragePathFromUrl(url)
-    if (!path) {
-      return
-    }
-    const { error } = await supabase.storage.from(IMAGE_BUCKET).remove([path])
-    if (error) {
-      throw new Error(error.message || 'Ошибка удаления изображения.')
-    }
-  }
-
-  const uploadImage = async (file: File) => {
-    const extension = file.name.split('.').pop() ?? 'jpg'
-    const fileName = `news/${crypto.randomUUID()}.${extension}`
-    const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(fileName, file, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
-    })
-    if (error) {
-      const errorMessage = error.message || 'Ошибка загрузки изображения.'
-      const errorWithStatus =
-        typeof (error as { statusCode?: number }).statusCode === 'number'
-          ? `${errorMessage} (status ${(error as { statusCode?: number }).statusCode})`
-          : errorMessage
-      throw new Error(errorWithStatus)
-    }
-    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(fileName)
-    return data.publicUrl
   }
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) {
-      return
-    }
-
-    const validationError = getImageValidationError(file)
-    if (validationError) {
-      setFormError(validationError)
-      event.target.value = ''
       return
     }
 
@@ -336,93 +268,47 @@ export const NewsPage = () => {
     setIsSaving(true)
     setFormError('')
     setSuccessMessage('')
-    let imageUrl = draftImageUrl.trim() ? draftImageUrl.trim() : ''
-    const previousImageUrl = isCreating ? '' : originalImageUrl
-    let uploadedImageUrl = ''
-
     try {
+      const formData = new FormData()
+      formData.append('title', trimmedTitle)
+      formData.append('text', trimmedText)
+      if (typeof id === 'number') {
+        formData.append('id', String(id))
+      }
       if (draftImageFile) {
-        const validationError = getImageValidationError(draftImageFile)
-        if (validationError) {
-          setFormError(validationError)
-          setIsSaving(false)
-          return
-        }
-        setIsUploading(true)
-        uploadedImageUrl = await uploadImage(draftImageFile)
-        imageUrl = uploadedImageUrl
-        setIsUploading(false)
-      } else if (isImageRemoved) {
-        imageUrl = ''
+        formData.append('image', draftImageFile)
+      }
+      if (isImageRemoved) {
+        formData.append('remove_image', 'true')
       }
 
-      const payload = {
-        title: trimmedTitle,
-        text: trimmedText,
-        image_url: imageUrl ? imageUrl : null,
+      setIsUploading(Boolean(draftImageFile))
+      const { data, error } = await supabase.functions.invoke('news-save', { body: formData })
+      setIsUploading(false)
+
+      if (error) {
+        setFormError(error.message)
+        setIsSaving(false)
+        return
+      }
+
+      const payload = (data as { item?: NewsItem } | null)?.item
+      if (!payload) {
+        setFormError('Ошибка сохранения.')
+        setIsSaving(false)
+        return
       }
 
       if (isCreating) {
-        const { data, error } = await supabase.from('news').insert(payload).select().single()
-        if (error) {
-          setFormError(error.message)
-          if (uploadedImageUrl) {
-            await deleteImageByUrl(uploadedImageUrl)
-          }
-          setIsSaving(false)
-          return
-        }
-        if (data) {
-          setNews((current) => [
-            {
-              id: data.id,
-              createdAt: data.created_at,
-              title: data.title,
-              text: data.text,
-              imageUrl: data.image_url,
-            },
-            ...current,
-          ])
-        }
+        setNews((current) => [payload, ...current])
       } else if (typeof id === 'number') {
-        const { data, error } = await supabase
-          .from('news')
-          .update(payload)
-          .eq('id', id)
-          .select()
-          .single()
-
-        if (error) {
-          setFormError(error.message)
-          if (uploadedImageUrl) {
-            await deleteImageByUrl(uploadedImageUrl)
-          }
-          setIsSaving(false)
-          return
-        }
-
-        setNews((current) =>
-          current.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  title: data.title,
-                  text: data.text,
-                  imageUrl: data.image_url,
-                }
-              : item,
-          ),
-        )
-      }
-
-      if (previousImageUrl && previousImageUrl !== imageUrl && (draftImageFile || isImageRemoved)) {
-        await deleteImageByUrl(previousImageUrl)
+        setNews((current) => current.map((item) => (item.id === id ? payload : item)))
       }
 
       setSuccessMessage('Успешно')
       setDraftImageFile(null)
       setIsImageRemoved(false)
-      setDraftImageUrl(imageUrl)
+      setDraftImageUrl(payload.imageUrl ?? '')
       setIsSaving(false)
       if (successCloseTimeoutRef.current !== null) {
         window.clearTimeout(successCloseTimeoutRef.current)
@@ -439,11 +325,13 @@ export const NewsPage = () => {
   }
 
   const handleDelete = async (id: number) => {
+    setIsDeleting(true)
     setIsSaving(true)
-    const { error } = await supabase.from('news').delete().eq('id', id)
+    const { error } = await supabase.functions.invoke('news-delete', { body: { id } })
     if (error) {
       setFormError(error.message)
       setIsSaving(false)
+      setIsDeleting(false)
       return
     }
 
@@ -451,19 +339,9 @@ export const NewsPage = () => {
     if (editingId === id) {
       setFormError('')
     }
-    if (originalImageUrl) {
-      try {
-        await deleteImageByUrl(originalImageUrl)
-      } catch (deleteError) {
-        const message =
-          deleteError instanceof Error ? deleteError.message : 'Ошибка удаления изображения.'
-        setFormError(message)
-        setIsSaving(false)
-        return
-      }
-    }
     setSuccessMessage('Успешно')
     setIsSaving(false)
+    setIsDeleting(false)
     if (successCloseTimeoutRef.current !== null) {
       window.clearTimeout(successCloseTimeoutRef.current)
     }
@@ -520,7 +398,7 @@ export const NewsPage = () => {
           {isModalBusy && (
             <div className={styles.modalLoader} role="status" aria-live="polite">
               <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
-              <span>{'Загрузка...'}</span>
+              <span>{isDeleting ? 'Удаление...' : 'Загрузка...'}</span>
             </div>
           )}
           {successMessage && <p className={formStyles.success}>{successMessage}</p>}

@@ -28,14 +28,19 @@
 
 .hero {
   overflow: hidden;
+  display: grid;
 }
 
-.heroImage {
+.heroLink {
+  display: block;
+}
+
+.heroImageTop,
+.heroImageBottom {
   width: 100%;
   height: 40dvh;
   object-fit: cover;
   display: block;
-  clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);
   transform: translateY(32px);
   opacity: 0;
   animation: rise 700ms ease-out forwards;
@@ -43,10 +48,41 @@
   border-radius: 20px;
 }
 
+.heroImageTop {
+  clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%);
+}
+
+.heroImageBottom {
+  clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%);
+  position: relative;
+  top: -21px;
+}
+
+.heroLoader {
+  width: 100%;
+  height: 40dvh;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.heroLoaderAnimation {
+  width: min(220px, 55vw);
+  height: min(220px, 55vw);
+}
+
 .latestStatus {
   margin: 0;
   font-size: 14px;
   opacity: 0.7;
+}
+
+.announcementTitle {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .mapFrame {
@@ -57,6 +93,14 @@
   border-color: 0;
 }
 
+.mapTitle {
+  margin: 0;
+}
+
+.mapText {
+  margin: 0;
+}
+
 @keyframes rise {
   to {
     transform: translateY(0);
@@ -65,7 +109,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroImage {
+  .heroImageTop,
+  .heroImageBottom {
     animation: none;
     transform: none;
     opacity: 1;

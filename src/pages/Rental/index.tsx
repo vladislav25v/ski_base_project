@@ -5,6 +5,7 @@ export const RentalPage = () => (
   <section className={styles.page}>
     <div className={styles.info}>
       <h1 className={styles.title}>{'Прокат лыж'}</h1>
+      <h2 className={styles.subtitle}>{'Стоимость проката:'}</h2>
       <p className={styles.text}>{'Взрослый — 230 рублей, детский — 170 рублей.'}</p>
       <p className={styles.text}>
         {'В наличии есть инвентарь на большинство размеров. Оплата наличными.'}
