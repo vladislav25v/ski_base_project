@@ -1,10 +1,10 @@
 ﻿import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { prisma } from '../db/prisma'
-import { env } from '../config/env'
-import { verifyPassword } from '../lib/password'
-import { requireAuth, type AuthRequest } from '../middleware/auth'
+import { prisma } from '../db/prisma.js'
+import { env } from '../config/env.js'
+import { verifyPassword } from '../lib/password.js'
+import { requireAuth, type AuthRequest } from '../middleware/auth.js'
 
 const router = Router()
 

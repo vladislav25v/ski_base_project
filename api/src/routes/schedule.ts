@@ -1,7 +1,7 @@
 ﻿import { Router } from 'express'
 import { z } from 'zod'
-import { prisma } from '../db/prisma'
-import { requireAdmin } from '../middleware/auth'
+import { prisma } from '../db/prisma.js'
+import { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 

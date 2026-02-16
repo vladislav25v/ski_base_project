@@ -1,11 +1,11 @@
 ﻿import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import { env } from './config/env'
-import { authRouter } from './routes/auth'
-import { newsRouter } from './routes/news'
-import { scheduleRouter } from './routes/schedule'
-import { galleryRouter } from './routes/gallery'
+import { env } from './config/env.js'
+import { authRouter } from './routes/auth.js'
+import { newsRouter } from './routes/news.js'
+import { scheduleRouter } from './routes/schedule.js'
+import { galleryRouter } from './routes/gallery.js'
 
 const app = express()
 

@@ -1,8 +1,8 @@
 ﻿import { Router } from 'express'
 import multer from 'multer'
-import { prisma } from '../db/prisma'
-import { requireAdmin } from '../middleware/auth'
-import { getStoragePathFromUrl, removeFileSafe, uploadImage } from '../storage'
+import { prisma } from '../db/prisma.js'
+import { requireAdmin } from '../middleware/auth.js'
+import { getStoragePathFromUrl, removeFileSafe, uploadImage } from '../storage/index.js'
 
 const router = Router()
 

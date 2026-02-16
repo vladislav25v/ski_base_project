@@ -1,6 +1,6 @@
-﻿import { prisma } from '../src/db/prisma'
-import { env } from '../src/config/env'
-import { hashPassword } from '../src/lib/password'
+﻿import { prisma } from '../src/db/prisma.js'
+import { env } from '../src/config/env.js'
+import { hashPassword } from '../src/lib/password.js'
 
 const run = async () => {
   const passwordHash = await hashPassword(env.adminPassword)

@@ -1,7 +1,7 @@
 ﻿import { randomUUID } from 'crypto'
 import path from 'path'
 import { PutObjectCommand, DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { env } from '../config/env'
+import { env } from '../config/env.js'
 
 const ensureS3Config = () => {
   if (!env.s3Endpoint || !env.s3Region || !env.s3Bucket || !env.s3AccessKey || !env.s3SecretKey) {
