@@ -46,6 +46,7 @@
   opacity: 0;
   animation: rise 700ms ease-out forwards;
   animation-delay: 150ms;
+  transition: opacity 0.7s ease;
   border-radius: 20px;
 }
 
@@ -57,7 +58,6 @@
   clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%);
   position: relative;
   top: -21px;
-  transition: opacity 0.7s ease;
 }
 
 .heroLoader {
@@ -129,5 +129,6 @@
   .heroImageBottom {
     height: 70vh;
     height: 70svh;
+    clip-path: polygon(0 5%, 100% 0, 100% 100%, 0 100%);
   }
 }
