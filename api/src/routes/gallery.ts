@@ -36,7 +36,7 @@ router.get('/', async (_req, res) => {
   })
 
   return res.json({
-    items: items.map((item) => ({
+    items: items.map((item: typeof items[number]) => ({
       id: item.id,
       createdAt: item.createdAt.toISOString(),
       storagePath: item.storagePath,

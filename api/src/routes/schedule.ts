@@ -22,7 +22,7 @@ router.get('/', async (_req, res) => {
   })
 
   return res.json({
-    items: rows.map((row) => ({
+    items: rows.map((row: typeof rows[number]) => ({
       id: row.id,
       day_of_week: row.dayOfWeek,
       is_open: row.isOpen,
