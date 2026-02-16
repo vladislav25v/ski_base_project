@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { supabase } from '../../shared/lib'
+import { apiClient, clearAuthUser, getAuthUser, subscribeAuth, syncAuthUser } from '../../shared/lib'
 import { Header } from '../Header'
 import { Menu } from '../Menu'
 import { Footer } from '../footer'
@@ -18,7 +18,6 @@ export const Layout = () => {
     return (localStorage.getItem('theme') as 'light' | 'dark') ?? 'light'
   })
 
-  const adminUid = import.meta.env.VITE_ADMIN_UID as string | undefined
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -35,33 +34,26 @@ export const Layout = () => {
   }, [theme])
 
   useEffect(() => {
-    let isMounted = true
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return
-      }
-      const user = data.session?.user
-      setIsAdmin(!!(adminUid && user?.id === adminUid))
-    })
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user
-      setIsAdmin(!!(adminUid && user?.id === adminUid))
-    })
-
-    return () => {
-      isMounted = false
-      subscription.subscription.unsubscribe()
+    const updateAdmin = () => {
+      const user = getAuthUser()
+      setIsAdmin(user?.role === 'admin')
     }
-  }, [adminUid])
+
+    updateAdmin()
+    const unsubscribe = subscribeAuth(updateAdmin)
+    void syncAuthUser()
+    return () => {
+      unsubscribe()
+    }
+  }, [])
 
   const handleMenuClose = () => {
     setMenuOpen(false)
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
+  const handleLogout = () => {
+    clearAuthUser()
+    void apiClient.post('/auth/logout', {})
   }
 
   return (
@@ -76,10 +68,7 @@ export const Layout = () => {
       <main className={styles.main}>
         <Outlet />
       </main>
-      <Footer
-        isAdmin={isAdmin}
-        onLogout={handleLogout}
-      />
+      <Footer isAdmin={isAdmin} onLogout={handleLogout} />
     </div>
   )
 }

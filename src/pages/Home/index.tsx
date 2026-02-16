@@ -2,7 +2,7 @@
 import lottie from 'lottie-web'
 import { Link } from 'react-router-dom'
 import styles from './Home.module.scss'
-import { supabase } from '../../shared/lib'
+import { apiClient } from '../../shared/lib'
 import type { NewsItem } from '../../shared/model'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import { ScheduleSection } from '../../shared/features/schedule'
@@ -49,11 +49,7 @@ export const HomePage = () => {
 
     const fetchLatestNews = async () => {
       setIsNewsLoading(true)
-      const { data, error } = await supabase
-        .from('news')
-        .select('id, created_at, title, text, image_url')
-        .order('created_at', { ascending: false })
-        .limit(1)
+      const { data, error } = await apiClient.get<{ items: NewsItem[] }>('/news?limit=1')
 
       if (!isMounted) {
         return
@@ -65,15 +61,9 @@ export const HomePage = () => {
         return
       }
 
-      const item = data?.[0]
+      const item = data?.items?.[0]
       if (item) {
-        setLatestNews({
-          id: item.id,
-          createdAt: item.created_at,
-          title: item.title,
-          text: item.text,
-          imageUrl: item.image_url,
-        })
+        setLatestNews(item)
       } else {
         setLatestNews(null)
       }
@@ -92,24 +82,23 @@ export const HomePage = () => {
 
     const fetchPreviewImage = async () => {
       setIsRandomLoading(true)
-      const { data, error } = await supabase
-        .from('gallery_pictures')
-        .select('storage_path, caption')
-        .limit(40)
+      const { data, error } = await apiClient.get<{
+        items: Array<{ storagePath: string; caption?: string | null }>
+      }>('/gallery')
 
-      if (!isMounted || error || !data || data.length === 0) {
+      if (!isMounted || error || !data || data.items.length === 0) {
         if (isMounted) {
           setIsRandomLoading(false)
         }
         return
       }
 
-      const randomItem = data[Math.floor(Math.random() * data.length)]
-      if (!randomItem?.storage_path) {
+      const randomItem = data.items[Math.floor(Math.random() * data.items.length)]
+      if (!randomItem?.storagePath) {
         return
       }
 
-      const publicUrl = getGalleryPublicUrl(randomItem.storage_path)
+      const publicUrl = getGalleryPublicUrl(randomItem.storagePath)
       if (!publicUrl) {
         setIsRandomLoading(false)
         return
@@ -198,5 +187,3 @@ export const HomePage = () => {
     </section>
   )
 }
-
-

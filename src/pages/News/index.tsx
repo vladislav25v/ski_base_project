@@ -1,7 +1,7 @@
 ﻿import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { Button, FormModal, NewsForm, useModalClosing } from '../../shared/ui'
-import { supabase } from '../../shared/lib'
+import { apiClient, getAuthUser, subscribeAuth } from '../../shared/lib'
 import type { NewsItem } from '../../shared/model'
 import styles from './News.module.scss'
 import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
@@ -24,7 +24,6 @@ const formatDate = (value: string) =>
   })
 
 export const NewsPage = () => {
-  const adminUid = import.meta.env.VITE_ADMIN_UID as string | undefined
   const [news, setNews] = useState<NewsItem[]>(() => sortByNewest(initialNews))
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -97,10 +96,7 @@ export const NewsPage = () => {
 
     const fetchNews = async () => {
       setIsLoading(true)
-      const { data, error } = await supabase
-        .from('news')
-        .select('id, created_at, title, text, image_url')
-        .order('created_at', { ascending: false })
+      const { data, error } = await apiClient.get<{ items: NewsItem[] }>('/news')
 
       if (!isMounted) {
         return
@@ -112,13 +108,7 @@ export const NewsPage = () => {
         return
       }
 
-      const items = (data ?? []).map((item) => ({
-        id: item.id,
-        createdAt: item.created_at,
-        title: item.title,
-        text: item.text,
-        imageUrl: item.image_url,
-      }))
+      const items = data?.items ?? []
       setNews(items)
       setIsLoading(false)
     }
@@ -131,26 +121,17 @@ export const NewsPage = () => {
   }, [])
 
   useEffect(() => {
-    let isMounted = true
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return
-      }
-      const user = data.session?.user
-      setIsAdmin(!!(adminUid && user?.id === adminUid))
-    })
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user
-      setIsAdmin(!!(adminUid && user?.id === adminUid))
-    })
-
-    return () => {
-      isMounted = false
-      subscription.subscription.unsubscribe()
+    const updateAdmin = () => {
+      const user = getAuthUser()
+      setIsAdmin(user?.role === 'admin')
     }
-  }, [adminUid])
+
+    updateAdmin()
+    const unsubscribe = subscribeAuth(() => updateAdmin())
+    return () => {
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -283,7 +264,7 @@ export const NewsPage = () => {
       }
 
       setIsUploading(Boolean(draftImageFile))
-      const { data, error } = await supabase.functions.invoke('news-save', { body: formData })
+      const { data, error } = await apiClient.upload<{ item?: NewsItem }>('/news', formData)
       setIsUploading(false)
 
       if (error) {
@@ -292,7 +273,7 @@ export const NewsPage = () => {
         return
       }
 
-      const payload = (data as { item?: NewsItem } | null)?.item
+      const payload = data?.item
       if (!payload) {
         setFormError('Ошибка сохранения.')
         setIsSaving(false)
@@ -327,7 +308,7 @@ export const NewsPage = () => {
   const handleDelete = async (id: number) => {
     setIsDeleting(true)
     setIsSaving(true)
-    const { error } = await supabase.functions.invoke('news-delete', { body: { id } })
+    const { error } = await apiClient.del<{ success: boolean }>(`/news/${id}`)
     if (error) {
       setFormError(error.message)
       setIsSaving(false)

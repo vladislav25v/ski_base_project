@@ -1,35 +1,35 @@
-import { supabase } from '../../lib'
+import { apiClient, getMediaPublicUrl } from '../../lib'
 import type { GalleryPicture } from '../../model'
 
 export type GalleryItem = GalleryPicture & {
   publicUrl: string
 }
 
-const IMAGE_BUCKET = 'news_images'
-
-export const getGalleryPublicUrl = (path: string) =>
-  supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl
+export const getGalleryPublicUrl = (path: string) => getMediaPublicUrl(path)
 
 export const fetchGalleryPictures = async () => {
-  const { data, error } = await supabase
-    .from('gallery_pictures')
-    .select('id, created_at, storage_path, caption, width, height, blurhash')
-    .order('created_at', { ascending: false })
+  const { data, error } = await apiClient.get<{
+    items: Array<
+      GalleryPicture & {
+        publicUrl?: string
+      }
+    >
+  }>('/gallery')
 
   if (error) {
     return { items: [], error }
   }
 
   const items: GalleryItem[] =
-    data?.map((item) => ({
+    data?.items.map((item) => ({
       id: item.id,
-      createdAt: item.created_at,
-      storagePath: item.storage_path,
+      createdAt: item.createdAt,
+      storagePath: item.storagePath,
       caption: item.caption,
       width: item.width,
       height: item.height,
       blurhash: item.blurhash,
-      publicUrl: getGalleryPublicUrl(item.storage_path),
+      publicUrl: item.publicUrl || getGalleryPublicUrl(item.storagePath),
     })) ?? []
 
   return { items, error: null }
@@ -46,8 +46,8 @@ export const uploadGalleryPictures = async (files: File[], meta: GalleryUploadMe
   const formData = new FormData()
   files.forEach((file) => formData.append('files', file))
   formData.append('meta', JSON.stringify(meta))
-  return supabase.functions.invoke('gallery-upload', { body: formData })
+  return apiClient.upload('/gallery', formData)
 }
 
 export const deleteGalleryPicture = async (id: string) =>
-  supabase.functions.invoke('gallery-delete', { body: { id } })
+  apiClient.del(`/gallery/${id}`)

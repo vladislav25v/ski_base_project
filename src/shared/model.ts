@@ -3,6 +3,12 @@ export type AuthCredentials = {
   password: string
 }
 
+export type AuthUser = {
+  id: string
+  email: string
+  role: string
+}
+
 export type NewsItem = {
   id: number
   createdAt: string

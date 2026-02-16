@@ -1,6 +1,6 @@
 ﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
-import { supabase } from '../../lib'
+import { apiClient, getAuthUser, subscribeAuth } from '../../lib'
 import { Button, FormModal, ScheduleForm, useModalClosing } from '../../ui'
 import type { ScheduleDay, ScheduleDayRecord, ScheduleDayUpsert } from '../../model'
 import animationData from '../../../assets/loaders/animation (2).json'
@@ -89,9 +89,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
     if (withLoading) {
       setIsLoading(true)
     }
-    const { data, error } = await supabase
-      .from('schedule')
-      .select('id, day_of_week, is_open, start_time, end_time')
+    const { data, error } = await apiClient.get<{ items: ScheduleDayRecord[] }>('/schedule')
 
     if (!isMountedRef.current) {
       return
@@ -103,7 +101,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
       return
     }
 
-    const rows = (data ?? []) as ScheduleDayRecord[]
+    const rows = data?.items ?? []
     setDisplayDays(rows.map(mapRowToDisplayDay))
     setHasScheduleData(rows.length > 0)
     setDays(mergeSchedule(rows))
@@ -120,47 +118,16 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
   }, [])
 
   useEffect(() => {
-    let isMounted = true
-
-    const checkAdmin = async (userId?: string) => {
-      if (!userId) {
-        if (isMounted) {
-          setIsAdmin(false)
-        }
-        return
-      }
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (!isMounted) {
-        return
-      }
-      if (error || !data) {
-        setIsAdmin(false)
-        return
-      }
-      setIsAdmin(data.role === 'admin')
+    const updateAdmin = () => {
+      const user = getAuthUser()
+      setIsAdmin(user?.role === 'admin')
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return
-      }
-      const user = data.session?.user
-      void checkAdmin(user?.id)
-    })
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user
-      void checkAdmin(user?.id)
-    })
+    updateAdmin()
+    const unsubscribe = subscribeAuth(() => updateAdmin())
 
     return () => {
-      isMounted = false
-      subscription.subscription.unsubscribe()
+      unsubscribe()
     }
   }, [])
 
@@ -284,9 +251,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
       end_time: day.isOpen ? day.endTime : null,
     }))
 
-    const { error } = await supabase.functions.invoke('schedule-upsert', {
-      body: { days: payload },
-    })
+    const { error } = await apiClient.put<{ success: boolean }>('/schedule', { days: payload })
 
     if (error) {
       setFormError(error.message || 'Ошибка сохранения.')

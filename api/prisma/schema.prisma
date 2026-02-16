@@ -1,0 +1,51 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model News {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  title     String
+  text      String
+  imageUrl  String?  @map("image_url")
+
+  @@map("news")
+}
+
+model GalleryPicture {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  storagePath String   @map("storage_path")
+  caption     String?
+  width       Int?
+  height      Int?
+  blurhash    String?
+
+  @@map("gallery_pictures")
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  dayOfWeek Int      @unique @map("day_of_week")
+  isOpen    Boolean  @default(false) @map("is_open")
+  startTime String?  @map("start_time")
+  endTime   String?  @map("end_time")
+
+  @@map("schedule")
+}

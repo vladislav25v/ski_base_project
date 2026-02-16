@@ -11,7 +11,7 @@ import lottie from 'lottie-web'
 import Masonry from 'react-masonry-css'
 import type { GalleryPicture } from '../../shared/model'
 import { Button, FormModal, useModalClosing } from '../../shared/ui'
-import { supabase } from '../../shared/lib'
+import { getAuthUser, subscribeAuth } from '../../shared/lib'
 import {
   deleteGalleryPicture,
   fetchGalleryPictures,
@@ -148,47 +148,16 @@ export const GalleryPage = () => {
   }, [])
 
   useEffect(() => {
-    let isMounted = true
-
-    const checkAdmin = async (userId?: string) => {
-      if (!userId) {
-        if (isMounted) {
-          setIsAdmin(false)
-        }
-        return
-      }
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (!isMounted) {
-        return
-      }
-      if (error || !data) {
-        setIsAdmin(false)
-        return
-      }
-      setIsAdmin(data.role === 'admin')
+    const updateAdmin = () => {
+      const user = getAuthUser()
+      setIsAdmin(user?.role === 'admin')
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return
-      }
-      const user = data.session?.user
-      void checkAdmin(user?.id)
-    })
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user
-      void checkAdmin(user?.id)
-    })
+    updateAdmin()
+    const unsubscribe = subscribeAuth(() => updateAdmin())
 
     return () => {
-      isMounted = false
-      subscription.subscription.unsubscribe()
+      unsubscribe()
     }
   }, [])
 

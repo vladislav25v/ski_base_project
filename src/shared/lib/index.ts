@@ -1,2 +1,9 @@
 export const noop = () => {}
-export { supabase } from './supabaseClient'
+export { apiClient, getMediaPublicUrl } from './apiClient'
+export {
+  getAuthUser,
+  setAuthUser,
+  clearAuthUser,
+  syncAuthUser,
+  subscribeAuth,
+} from './auth'
