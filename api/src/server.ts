@@ -8,6 +8,7 @@ import { scheduleRouter } from './routes/schedule.js'
 import { galleryRouter } from './routes/gallery.js'
 
 const app = express()
+app.set('trust proxy', 1)
 
 const allowedOrigins = env.corsOrigin
   .split(',')

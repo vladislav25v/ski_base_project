@@ -29,8 +29,9 @@ export const HomePage = () => {
   const [latestNews, setLatestNews] = useState<NewsItem | null>(null)
   const [isNewsLoading, setIsNewsLoading] = useState(true)
   const [newsError, setNewsError] = useState('')
-  const [randomImageUrl, setRandomImageUrl] = useState<string | null>(null)
-  const [randomImageAlt, setRandomImageAlt] = useState('Фотография из галереи')
+  const [galleryItems, setGalleryItems] = useState<Array<{ url: string; alt: string }>>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isImageVisible, setIsImageVisible] = useState(true)
   const [isRandomLoading, setIsRandomLoading] = useState(true)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.body.dataset.theme === 'dark' ? 'dark' : 'light',
@@ -93,19 +94,23 @@ export const HomePage = () => {
         return
       }
 
-      const randomItem = data.items[Math.floor(Math.random() * data.items.length)]
-      if (!randomItem?.storagePath) {
-        return
-      }
+      const items = data.items
+        .filter((item) => Boolean(item.storagePath))
+        .map((item) => ({
+          url: getGalleryPublicUrl(item.storagePath) ?? '',
+          alt: item.caption || 'Фотография из галереи',
+        }))
+        .filter((item) => Boolean(item.url))
 
-      const publicUrl = getGalleryPublicUrl(randomItem.storagePath)
-      if (!publicUrl) {
+      if (items.length === 0) {
         setIsRandomLoading(false)
         return
       }
 
-      setRandomImageUrl(publicUrl)
-      setRandomImageAlt(randomItem.caption || 'Фотография из галереи')
+      const initialIndex = Math.floor(Math.random() * items.length)
+      setGalleryItems(items)
+      setCurrentIndex(initialIndex)
+      setIsImageVisible(true)
       setIsRandomLoading(false)
     }
 
@@ -115,6 +120,25 @@ export const HomePage = () => {
       isMounted = false
     }
   }, [])
+
+  useEffect(() => {
+    if (galleryItems.length < 2) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      setIsImageVisible(false)
+
+      window.setTimeout(() => {
+        setCurrentIndex((index) => (index + 1) % galleryItems.length)
+        setIsImageVisible(true)
+      }, 350)
+    }, 5000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [galleryItems])
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -155,9 +179,15 @@ export const HomePage = () => {
           <div className={styles.heroLoader} role="status" aria-live="polite">
             <div className={styles.heroLoaderAnimation} ref={randomLoaderRef} />
           </div>
-        ) : randomImageUrl ? (
+        ) : galleryItems.length > 0 ? (
           <Link className={styles.heroLink} to="/gallery">
-            <img className={styles.heroImageBottom} src={randomImageUrl} alt={randomImageAlt} />
+            <img
+              className={`${styles.heroImageBottom} ${
+                isImageVisible ? '' : styles.heroImageHidden
+              }`}
+              src={galleryItems[currentIndex]?.url}
+              alt={galleryItems[currentIndex]?.alt ?? 'Фотография из галереи'}
+            />
           </Link>
         ) : null}
       </div>

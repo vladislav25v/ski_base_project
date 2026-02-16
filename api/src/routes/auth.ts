@@ -1,4 +1,5 @@
-﻿import { Router } from 'express'
+import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
 import { prisma } from '../db/prisma.js'
@@ -21,7 +22,15 @@ const cookieOptions = {
   domain: env.cookieDomain || undefined,
 }
 
-router.post('/login', async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Try again later.' },
+})
+
+router.post('/login', loginLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid credentials' })
