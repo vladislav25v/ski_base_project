@@ -9,10 +9,22 @@ import { galleryRouter } from './routes/gallery.js'
 
 const app = express()
 
-const corsOrigin = env.corsOrigin
+const allowedOrigins = env.corsOrigin
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.length === 0) {
+        return callback(null, true)
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+      return callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   }),
 )
@@ -29,12 +41,13 @@ app.use('/news', newsRouter)
 app.use('/schedule', scheduleRouter)
 app.use('/gallery', galleryRouter)
 
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const message = err instanceof Error ? err.message : 'Unexpected error'
-  res.status(500).json({ error: message })
-})
+app.use(
+  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const message = err instanceof Error ? err.message : 'Unexpected error'
+    res.status(500).json({ error: message })
+  },
+)
 
 app.listen(env.port, '0.0.0.0', () => {
-  // eslint-disable-next-line no-console
   console.log(`API listening on ${env.publicBaseUrl}`)
 })
