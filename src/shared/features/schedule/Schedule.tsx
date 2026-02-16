@@ -4,6 +4,7 @@ import { apiClient, getAuthUser, subscribeAuth } from '../../lib'
 import { Button, FormModal, ScheduleForm, useModalClosing } from '../../ui'
 import type { ScheduleDay, ScheduleDayRecord, ScheduleDayUpsert } from '../../model'
 import animationData from '../../../assets/loaders/animation (2).json'
+import animationDataYellow from '../../../assets/loaders/animation_transparent_yellow_dada00.json'
 import styles from './Schedule.module.scss'
 
 const DAYS: Array<{ id: number; label: string }> = [
@@ -77,6 +78,18 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
   const [isSaving, setIsSaving] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') {
+      return 'light'
+    }
+
+    const storedTheme = localStorage.getItem('theme')
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      return storedTheme
+    }
+
+    return document.body.dataset.theme === 'dark' ? 'dark' : 'light'
+  })
   const successCloseTimeoutRef = useRef<number | null>(null)
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
@@ -132,6 +145,18 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
   }, [])
 
   useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
+    })
+
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
     return () => {
       if (successCloseTimeoutRef.current !== null) {
         window.clearTimeout(successCloseTimeoutRef.current)
@@ -150,13 +175,13 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData,
+      animationData: theme === 'dark' ? animationDataYellow : animationData,
     })
 
     return () => {
       animation.destroy()
     }
-  }, [isLoading])
+  }, [isLoading, theme])
 
   useEffect(() => {
     if (!isSaving || !modalLoaderRef.current) {
@@ -168,13 +193,13 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData,
+      animationData: theme === 'dark' ? animationDataYellow : animationData,
     })
 
     return () => {
       animation.destroy()
     }
-  }, [isSaving])
+  }, [isSaving, theme])
 
   const setDay = (dayOfWeek: number, update: Partial<ScheduleDay>) => {
     setDays((current) =>

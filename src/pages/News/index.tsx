@@ -39,9 +39,18 @@ export const NewsPage = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    document.body.dataset.theme === 'dark' ? 'dark' : 'light',
-  )
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') {
+      return 'light'
+    }
+
+    const storedTheme = localStorage.getItem('theme')
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      return storedTheme
+    }
+
+    return document.body.dataset.theme === 'dark' ? 'dark' : 'light'
+  })
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
   const successCloseTimeoutRef = useRef<number | null>(null)
