@@ -14,10 +14,12 @@ const allowedOrigins = env.corsOrigin
   .map((origin) => origin.trim())
   .filter(Boolean)
 
+const allowAllOrigins = allowedOrigins.length === 0 || allowedOrigins.includes('*')
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.length === 0) {
+      if (!origin || allowAllOrigins) {
         return callback(null, true)
       }
       if (allowedOrigins.includes(origin)) {
