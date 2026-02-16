@@ -132,8 +132,8 @@ export const HomePage = () => {
       window.setTimeout(() => {
         setCurrentIndex((index) => (index + 1) % galleryItems.length)
         setIsImageVisible(true)
-      }, 350)
-    }, 5000)
+      }, 700)
+    }, 15000)
 
     return () => {
       window.clearInterval(intervalId)
