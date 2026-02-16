@@ -24,20 +24,25 @@ router.get('/', async (req, res) => {
   const limit = Number(req.query.limit)
   const take = Number.isFinite(limit) && limit > 0 ? limit : undefined
 
-  const items = await prisma.news.findMany({
-    orderBy: { createdAt: 'desc' },
-    take,
-  })
+  try {
+    const items = await prisma.news.findMany({
+      orderBy: { createdAt: 'desc' },
+      take,
+    })
 
-  return res.json({
-    items: items.map((item: typeof items[number]) => ({
-      id: item.id,
-      createdAt: item.createdAt.toISOString(),
-      title: item.title,
-      text: item.text,
-      imageUrl: item.imageUrl,
-    })),
-  })
+    return res.json({
+      items: items.map((item: typeof items[number]) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
+        title: item.title,
+        text: item.text,
+        imageUrl: item.imageUrl,
+      })),
+    })
+  } catch (error) {
+    console.error('Failed to load news', error)
+    return res.status(500).json({ error: 'Failed to load news' })
+  }
 })
 
 router.post('/', requireAdmin, upload.single('image'), async (req, res) => {

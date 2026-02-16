@@ -31,22 +31,27 @@ const metaSchema = z.array(
 )
 
 router.get('/', async (_req, res) => {
-  const items = await prisma.galleryPicture.findMany({
-    orderBy: { createdAt: 'desc' },
-  })
+  try {
+    const items = await prisma.galleryPicture.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
 
-  return res.json({
-    items: items.map((item: typeof items[number]) => ({
-      id: item.id,
-      createdAt: item.createdAt.toISOString(),
-      storagePath: item.storagePath,
-      caption: item.caption,
-      width: item.width,
-      height: item.height,
-      blurhash: item.blurhash,
-      publicUrl: buildPublicUrl(item.storagePath),
-    })),
-  })
+    return res.json({
+      items: items.map((item: typeof items[number]) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
+        storagePath: item.storagePath,
+        caption: item.caption,
+        width: item.width,
+        height: item.height,
+        blurhash: item.blurhash,
+        publicUrl: buildPublicUrl(item.storagePath),
+      })),
+    })
+  } catch (error) {
+    console.error('Failed to load gallery', error)
+    return res.status(500).json({ error: 'Failed to load gallery' })
+  }
 })
 
 router.post('/', requireAdmin, upload.array('files'), async (req, res) => {

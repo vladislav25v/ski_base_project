@@ -17,19 +17,24 @@ const scheduleSchema = z.object({
 })
 
 router.get('/', async (_req, res) => {
-  const rows = await prisma.schedule.findMany({
-    orderBy: { dayOfWeek: 'asc' },
-  })
+  try {
+    const rows = await prisma.schedule.findMany({
+      orderBy: { dayOfWeek: 'asc' },
+    })
 
-  return res.json({
-    items: rows.map((row: typeof rows[number]) => ({
-      id: row.id,
-      day_of_week: row.dayOfWeek,
-      is_open: row.isOpen,
-      start_time: row.startTime,
-      end_time: row.endTime,
-    })),
-  })
+    return res.json({
+      items: rows.map((row: typeof rows[number]) => ({
+        id: row.id,
+        day_of_week: row.dayOfWeek,
+        is_open: row.isOpen,
+        start_time: row.startTime,
+        end_time: row.endTime,
+      })),
+    })
+  } catch (error) {
+    console.error('Failed to load schedule', error)
+    return res.status(500).json({ error: 'Failed to load schedule' })
+  }
 })
 
 router.put('/', requireAdmin, async (req, res) => {
@@ -40,26 +45,31 @@ router.put('/', requireAdmin, async (req, res) => {
 
   const { days } = parsed.data
 
-  await prisma.$transaction(
-    days.map((day) =>
-      prisma.schedule.upsert({
-        where: { dayOfWeek: day.day_of_week },
-        update: {
-          isOpen: day.is_open,
-          startTime: day.start_time,
-          endTime: day.end_time,
-        },
-        create: {
-          dayOfWeek: day.day_of_week,
-          isOpen: day.is_open,
-          startTime: day.start_time,
-          endTime: day.end_time,
-        },
-      }),
-    ),
-  )
+  try {
+    await prisma.$transaction(
+      days.map((day) =>
+        prisma.schedule.upsert({
+          where: { dayOfWeek: day.day_of_week },
+          update: {
+            isOpen: day.is_open,
+            startTime: day.start_time,
+            endTime: day.end_time,
+          },
+          create: {
+            dayOfWeek: day.day_of_week,
+            isOpen: day.is_open,
+            startTime: day.start_time,
+            endTime: day.end_time,
+          },
+        }),
+      ),
+    )
 
-  return res.json({ success: true })
+    return res.json({ success: true })
+  } catch (error) {
+    console.error('Failed to update schedule', error)
+    return res.status(500).json({ error: 'Failed to update schedule' })
+  }
 })
 
 export { router as scheduleRouter }

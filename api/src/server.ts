@@ -44,8 +44,14 @@ app.use('/schedule', scheduleRouter)
 app.use('/gallery', galleryRouter)
 
 app.use(
-  (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const message = err instanceof Error ? err.message : 'Unexpected error'
+    console.error('Request failed', {
+      method: req.method,
+      path: req.originalUrl,
+      message,
+      err,
+    })
     res.status(500).json({ error: message })
   },
 )
