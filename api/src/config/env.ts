@@ -2,6 +2,29 @@
 
 dotenv.config()
 
+const buildDatabaseUrl = () => {
+  const host = process.env.POSTGRESQL_HOST
+  const port = process.env.POSTGRESQL_PORT ?? '5432'
+  const user = process.env.POSTGRESQL_USER
+  const password = process.env.POSTGRESQL_PASSWORD
+  const dbName = process.env.POSTGRESQL_DBNAME ?? process.env.POSTGRESQL_DATABASE
+
+  if (!host || !user || !password || !dbName) {
+    return null
+  }
+
+  const encodedUser = encodeURIComponent(user)
+  const encodedPassword = encodeURIComponent(password)
+  return `postgresql://${encodedUser}:${encodedPassword}@${host}:${port}/${dbName}`
+}
+
+if (!process.env.DATABASE_URL) {
+  const generatedUrl = buildDatabaseUrl()
+  if (generatedUrl) {
+    process.env.DATABASE_URL = generatedUrl
+  }
+}
+
 const requireEnv = (key: string, fallback?: string) => {
   const value = process.env[key] ?? fallback
   if (!value) {

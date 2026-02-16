@@ -3,3 +3,5 @@ dist
 coverage
 .vite
 package-lock.json
+.env
+api/.env

@@ -1,3 +1,4 @@
-﻿import { PrismaClient } from '@prisma/client'
+import '../config/env.js'
+import { PrismaClient } from '@prisma/client'
 
 export const prisma = new PrismaClient()
