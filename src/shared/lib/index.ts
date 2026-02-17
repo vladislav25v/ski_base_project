@@ -7,3 +7,4 @@ export {
   syncAuthUser,
   subscribeAuth,
 } from './auth'
+export { applyRouteSeo } from './seo'

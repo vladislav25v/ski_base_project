@@ -1,6 +1,13 @@
 ﻿import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { apiClient, clearAuthUser, getAuthUser, subscribeAuth, syncAuthUser } from '../../shared/lib'
+import {
+  apiClient,
+  applyRouteSeo,
+  clearAuthUser,
+  getAuthUser,
+  subscribeAuth,
+  syncAuthUser,
+} from '../../shared/lib'
 import { Header } from '../Header'
 import { Menu } from '../Menu'
 import { Footer } from '../footer'
@@ -32,6 +39,10 @@ export const Layout = () => {
     document.body.dataset.theme = theme
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    applyRouteSeo(location.pathname)
+  }, [location.pathname])
 
   useEffect(() => {
     const updateAdmin = () => {
