@@ -1,33 +1,43 @@
-﻿# Ski Base API
+﻿# API (Express + Prisma)
 
-## Env
+## Основные команды
 
-`api/.env` expects:
+```bash
+npm run dev
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+```
 
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `PUBLIC_BASE_URL`
-- `STORAGE_DIR`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
-- `S3_ENDPOINT`
-- `S3_REGION`
-- `S3_BUCKET`
-- `S3_ACCESS_KEY`
-- `S3_SECRET_KEY`
-- `S3_PUBLIC_BASE_URL`
-- `CORS_ORIGIN`
-- `COOKIE_DOMAIN`
+## Локальный env (`api/.env`)
 
-## Scripts
+Минимально:
 
-- `npm run dev`
-- `npm run prisma:migrate`
-- `npm run prisma:seed`
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ski
+PORT=3001
+NODE_ENV=development
+
+JWT_SECRET=dev-secret
+PUBLIC_BASE_URL=http://localhost:3001
+ADMIN_EMAIL=admin@local.dev
+ADMIN_PASSWORD=change-me
+
+CORS_ORIGIN=http://localhost:5173
+COOKIE_DOMAIN=
+
+S3_ENDPOINT=http://localhost:9000
+S3_REGION=us-east-1
+S3_BUCKET=4804453a-1c0f-495d-ba30-ae2d14457195
+S3_ACCESS_KEY=minio
+S3_SECRET_KEY=minio123
+S3_PUBLIC_BASE_URL=http://localhost:9000/4804453a-1c0f-495d-ba30-ae2d14457195
+```
 
 ## Endpoints
 
 - `POST /auth/login`
+- `POST /auth/logout`
 - `GET /auth/me`
 - `GET /news`
 - `POST /news` (admin)
@@ -39,3 +49,8 @@
 - `PUT /schedule` (admin)
 - `GET /training-schedule`
 - `PUT /training-schedule` (admin)
+
+## Важно
+
+- Для прода используйте отдельный сильный `JWT_SECRET`.
+- После деплоя с новыми миграциями обязательно запускать `npm run prisma:migrate`.
