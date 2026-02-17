@@ -31,8 +31,8 @@ export const Menu = ({ isOpen, onClose, intro = false }: MenuProps) => {
           <Link className={styles.navLink} to="/news" onClick={onClose}>
             Новости
           </Link>
-          <Link className={styles.navLink} to="/calendar" onClick={onClose}>
-            Календарь
+          <Link className={styles.navLink} to="/training" onClick={onClose}>
+            Тренировки
           </Link>
           <Link className={styles.navLink} to="/tracks-scheme" onClick={onClose}>
             Схема трасс

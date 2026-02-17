@@ -7,6 +7,7 @@ import type { NewsItem } from '../../shared/model'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import { ScheduleSection } from '../../shared/features/schedule'
 import { getGalleryPublicUrl } from '../../shared/features/gallery/api'
+import { buildBlurDataUrl } from '../../shared/features/gallery/utils'
 import animationData from '../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
 
@@ -25,18 +26,36 @@ const getPreviewText = (text: string) => {
   return `${trimmed.slice(0, 180)}...`
 }
 
+const getRandomIndex = (length: number, exclude: number) => {
+  if (length <= 1) {
+    return 0
+  }
+
+  let nextIndex = exclude
+  while (nextIndex === exclude) {
+    nextIndex = Math.floor(Math.random() * length)
+  }
+
+  return nextIndex
+}
+
 export const HomePage = () => {
   const [latestNews, setLatestNews] = useState<NewsItem | null>(null)
   const [isNewsLoading, setIsNewsLoading] = useState(true)
   const [newsError, setNewsError] = useState('')
-  const [galleryItems, setGalleryItems] = useState<Array<{ url: string; alt: string }>>([])
+  const [galleryItems, setGalleryItems] = useState<
+    Array<{ url: string; alt: string; blurhash?: string | null }>
+  >([])
+  const [loadedImageUrls, setLoadedImageUrls] = useState<Record<string, true>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isImageVisible, setIsImageVisible] = useState(true)
+  const [nextIndex, setNextIndex] = useState<number | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   const [isRandomLoading, setIsRandomLoading] = useState(true)
   const [theme, setTheme] = useState<'light' | 'dark'>(() =>
     document.body.dataset.theme === 'dark' ? 'dark' : 'light',
   )
   const randomLoaderRef = useRef<HTMLDivElement | null>(null)
+  const transitionTimeoutRef = useRef<number | null>(null)
 
   const latestDate = useMemo(() => {
     if (!latestNews) {
@@ -44,6 +63,43 @@ export const HomePage = () => {
     }
     return formatDate(latestNews.createdAt)
   }, [latestNews])
+
+  const currentItem = galleryItems[currentIndex]
+  const nextItem = nextIndex !== null ? galleryItems[nextIndex] : null
+
+  const currentBlurDataUrl = useMemo(() => {
+    if (!currentItem?.blurhash) {
+      return null
+    }
+    return buildBlurDataUrl(currentItem.blurhash)
+  }, [currentItem?.blurhash])
+
+  const nextBlurDataUrl = useMemo(() => {
+    if (!nextItem?.blurhash) {
+      return null
+    }
+    return buildBlurDataUrl(nextItem.blurhash)
+  }, [nextItem?.blurhash])
+
+  const mapWidgetSrc = useMemo(() => {
+    const src = new URL('https://yandex.ru/map-widget/v1/')
+    src.searchParams.set('ll', '124.703548,55.161825')
+    src.searchParams.set('mode', 'poi')
+    src.searchParams.set('poi[point]', '124.701973,55.160831')
+    src.searchParams.set('poi[uri]', 'ymapsbm1://org?oid=186711668181')
+    src.searchParams.set('z', '14')
+    src.searchParams.set('theme', theme === 'dark' ? 'dark' : 'light')
+    return src.toString()
+  }, [theme])
+
+  const markImageLoaded = (url: string) => {
+    setLoadedImageUrls((previous) => {
+      if (previous[url]) {
+        return previous
+      }
+      return { ...previous, [url]: true }
+    })
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -84,7 +140,7 @@ export const HomePage = () => {
     const fetchPreviewImage = async () => {
       setIsRandomLoading(true)
       const { data, error } = await apiClient.get<{
-        items: Array<{ storagePath: string; caption?: string | null }>
+        items: Array<{ storagePath: string; caption?: string | null; blurhash?: string | null }>
       }>('/gallery')
 
       if (!isMounted || error || !data || data.items.length === 0) {
@@ -99,6 +155,7 @@ export const HomePage = () => {
         .map((item) => ({
           url: getGalleryPublicUrl(item.storagePath) ?? '',
           alt: item.caption || 'Фотография из галереи',
+          blurhash: item.blurhash ?? null,
         }))
         .filter((item) => Boolean(item.url))
 
@@ -109,8 +166,10 @@ export const HomePage = () => {
 
       const initialIndex = Math.floor(Math.random() * items.length)
       setGalleryItems(items)
+      setLoadedImageUrls({})
       setCurrentIndex(initialIndex)
-      setIsImageVisible(true)
+      setNextIndex(null)
+      setIsTransitioning(false)
       setIsRandomLoading(false)
     }
 
@@ -127,16 +186,31 @@ export const HomePage = () => {
     }
 
     const intervalId = window.setInterval(() => {
-      setIsImageVisible(false)
+      setCurrentIndex((index) => {
+        const upcomingIndex = getRandomIndex(galleryItems.length, index)
+        setNextIndex(upcomingIndex)
+        setIsTransitioning(true)
 
-      window.setTimeout(() => {
-        setCurrentIndex((index) => (index + 1) % galleryItems.length)
-        setIsImageVisible(true)
-      }, 700)
-    }, 15000)
+        if (transitionTimeoutRef.current !== null) {
+          window.clearTimeout(transitionTimeoutRef.current)
+        }
+
+        transitionTimeoutRef.current = window.setTimeout(() => {
+          setCurrentIndex(upcomingIndex)
+          setIsTransitioning(false)
+          setNextIndex(null)
+        }, 1000)
+
+        return index
+      })
+    }, 10000)
 
     return () => {
       window.clearInterval(intervalId)
+      if (transitionTimeoutRef.current !== null) {
+        window.clearTimeout(transitionTimeoutRef.current)
+        transitionTimeoutRef.current = null
+      }
     }
   }, [galleryItems])
 
@@ -181,13 +255,57 @@ export const HomePage = () => {
           </div>
         ) : galleryItems.length > 0 ? (
           <Link className={styles.heroLink} to="/gallery">
-            <img
-              className={`${styles.heroImageBottom} ${
-                isImageVisible ? '' : styles.heroImageHidden
-              }`}
-              src={galleryItems[currentIndex]?.url}
-              alt={galleryItems[currentIndex]?.alt ?? 'Фотография из галереи'}
-            />
+            <div className={styles.heroImageBottomFrame}>
+              <div
+                key={`current-${currentIndex}`}
+                className={`${styles.heroImageLayer} ${
+                  isTransitioning ? styles.heroImageLeaving : ''
+                }`}
+              >
+                {currentBlurDataUrl ? (
+                  <img
+                    className={`${styles.heroBlur} ${
+                      currentItem?.url && loadedImageUrls[currentItem.url] ? styles.heroBlurHidden : ''
+                    }`}
+                    src={currentBlurDataUrl}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <img
+                  className={styles.heroImageBottom}
+                  src={currentItem?.url}
+                  alt={currentItem?.alt ?? 'Фотография из галереи'}
+                  onLoad={() => {
+                    if (currentItem?.url) {
+                      markImageLoaded(currentItem.url)
+                    }
+                  }}
+                />
+              </div>
+              {isTransitioning && nextItem ? (
+                <div key={`next-${nextIndex}`} className={`${styles.heroImageLayer} ${styles.heroImageEntering}`}>
+                  {nextBlurDataUrl ? (
+                    <img
+                      className={`${styles.heroBlur} ${
+                        loadedImageUrls[nextItem.url] ? styles.heroBlurHidden : ''
+                      }`}
+                      src={nextBlurDataUrl}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <img
+                    className={styles.heroImageBottom}
+                    src={nextItem.url}
+                    alt={nextItem.alt ?? 'Фотография из галереи'}
+                    onLoad={() => {
+                      markImageLoaded(nextItem.url)
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
           </Link>
         ) : null}
       </div>
@@ -198,19 +316,34 @@ export const HomePage = () => {
       ) : latestNews ? (
         <>
           <h2 className={styles.announcementTitle}>{'Объявление'}</h2>
-          <NewsCard item={latestNews} dateLabel={latestDate} text={getPreviewText(latestNews.text)} />
+          <NewsCard
+            item={latestNews}
+            dateLabel={latestDate}
+            text={getPreviewText(latestNews.text)}
+          />
         </>
       ) : (
         <p className={styles.latestStatus}>{'Пока нет новостей.'}</p>
       )}
-      <ScheduleSection />
+      <ScheduleSection
+        title="График тренировки детей"
+        titleLinkTo="/training"
+        apiPath="/training-schedule"
+        compact
+      />
+      <ScheduleSection
+        title="График работы проката лыж"
+        titleLinkTo="/rental"
+        apiPath="/schedule"
+        compact
+      />
       <div>
         <h2 className={styles.mapTitle}>Как добраться</h2>
         <p className={styles.mapText}>На автобусе №3 до остановки "улица Автомобилистов"</p>
       </div>
       <iframe
         className={styles.mapFrame}
-        src="https://yandex.ru/map-widget/v1/?ll=124.703548%2C55.161825&mode=poi&poi%5Bpoint%5D=124.701973%2C55.160831&poi%5Buri%5D=ymapsbm1%3A%2F%2Forg%3Foid%3D186711668181&z=14"
+        src={mapWidgetSrc}
         allowFullScreen
         title="Лыжная база на карте"
       />

@@ -1,5 +1,6 @@
 ﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
+import { Link } from 'react-router-dom'
 import { apiClient, getAuthUser, subscribeAuth } from '../../lib'
 import { Button, FormModal, ScheduleForm, useModalClosing } from '../../ui'
 import type { ScheduleDay, ScheduleDayRecord, ScheduleDayUpsert } from '../../model'
@@ -65,9 +66,17 @@ const mapRowToDisplayDay = (row: ScheduleDayRecord): ScheduleDay => ({
 
 type ScheduleSectionProps = {
   title?: string
+  titleLinkTo?: string
+  apiPath?: '/schedule' | '/training-schedule'
+  compact?: boolean
 }
 
-export const ScheduleSection = ({ title = 'График работы' }: ScheduleSectionProps) => {
+export const ScheduleSection = ({
+  title = 'График работы',
+  titleLinkTo,
+  apiPath = '/schedule',
+  compact = false,
+}: ScheduleSectionProps) => {
   const [days, setDays] = useState<ScheduleDay[]>(() => buildDefaultSchedule())
   const [displayDays, setDisplayDays] = useState<ScheduleDay[]>([])
   const [hasScheduleData, setHasScheduleData] = useState(false)
@@ -102,7 +111,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
     if (withLoading) {
       setIsLoading(true)
     }
-    const { data, error } = await apiClient.get<{ items: ScheduleDayRecord[] }>('/schedule')
+    const { data, error } = await apiClient.get<{ items: ScheduleDayRecord[] }>(apiPath)
 
     if (!isMountedRef.current) {
       return
@@ -128,7 +137,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
     return () => {
       isMountedRef.current = false
     }
-  }, [])
+  }, [apiPath])
 
   useEffect(() => {
     const updateAdmin = () => {
@@ -249,13 +258,16 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
     setIsEditing(false)
   }
 
-  const { isVisible: isModalVisible, isClosing: isModalClosing, requestClose: requestCloseModal } =
-    useModalClosing({
-      isOpen: isEditing,
-      isBusy: isSaving,
-      closeDelayMs,
-      onClose: closeModalImmediate,
-    })
+  const {
+    isVisible: isModalVisible,
+    isClosing: isModalClosing,
+    requestClose: requestCloseModal,
+  } = useModalClosing({
+    isOpen: isEditing,
+    isBusy: isSaving,
+    closeDelayMs,
+    onClose: closeModalImmediate,
+  })
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -276,7 +288,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
       end_time: day.isOpen ? day.endTime : null,
     }))
 
-    const { error } = await apiClient.put<{ success: boolean }>('/schedule', { days: payload })
+    const { error } = await apiClient.put<{ success: boolean }>(apiPath, { days: payload })
 
     if (error) {
       setFormError(error.message || 'Ошибка сохранения.')
@@ -296,10 +308,16 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
   }
 
   return (
-    <section className={styles.section}>
+    <section className={`${styles.section} ${compact ? styles.sectionCompact : ''}`}>
       <header className={styles.header}>
         <div>
-          <h2 className={styles.title}>{title}</h2>
+          {titleLinkTo ? (
+            <Link className={styles.titleLink} to={titleLinkTo}>
+              <h2 className={styles.title}>{title}</h2>
+            </Link>
+          ) : (
+            <h2 className={styles.title}>{title}</h2>
+          )}
         </div>
         {isAdmin && (
           <Button variant="outline" onClick={handleOpenEdit}>
@@ -317,7 +335,7 @@ export const ScheduleSection = ({ title = 'График работы' }: Schedul
         </div>
       ) : !hasScheduleData ? (
         <p className={styles.notice}>
-          {'Актуальные часы работы базы уточняйте по телефону '}
+          {'Актуальные часы работы уточняйте по телефону '}
           <a className={styles.phoneLink} href={PHONE_LINK}>
             {PHONE_DISPLAY}
           </a>

@@ -11,6 +11,6 @@ export const RentalPage = () => (
         {'В наличии есть инвентарь на большинство размеров. Оплата наличными.'}
       </p>
     </div>
-    <ScheduleSection title="График работы проката лыж" />
+    <ScheduleSection title="График работы проката лыж" apiPath="/schedule" compact />
   </section>
 )

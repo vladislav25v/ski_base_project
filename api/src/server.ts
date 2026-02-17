@@ -5,6 +5,7 @@ import { env } from './config/env.js'
 import { authRouter } from './routes/auth.js'
 import { newsRouter } from './routes/news.js'
 import { scheduleRouter } from './routes/schedule.js'
+import { trainingScheduleRouter } from './routes/trainingSchedule.js'
 import { galleryRouter } from './routes/gallery.js'
 
 const app = express()
@@ -42,6 +43,7 @@ app.get('/health', (_req, res) => {
 app.use('/auth', authRouter)
 app.use('/news', newsRouter)
 app.use('/schedule', scheduleRouter)
+app.use('/training-schedule', trainingScheduleRouter)
 app.use('/gallery', galleryRouter)
 
 app.use(

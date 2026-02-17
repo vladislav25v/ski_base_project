@@ -37,3 +37,5 @@
 - `DELETE /gallery/:id` (admin)
 - `GET /schedule`
 - `PUT /schedule` (admin)
+- `GET /training-schedule`
+- `PUT /training-schedule` (admin)

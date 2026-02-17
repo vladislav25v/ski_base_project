@@ -49,3 +49,13 @@ model Schedule {
 
   @@map("schedule")
 }
+
+model TrainingSchedule {
+  id        Int      @id @default(autoincrement())
+  dayOfWeek Int      @unique @map("day_of_week")
+  isOpen    Boolean  @default(false) @map("is_open")
+  startTime String?  @map("start_time")
+  endTime   String?  @map("end_time")
+
+  @@map("training_schedule")
+}

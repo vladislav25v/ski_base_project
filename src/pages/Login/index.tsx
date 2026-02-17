@@ -27,7 +27,7 @@ export const LoginPage = () => {
 
     const user = getAuthUser()
     if (isMounted && user?.role === 'admin') {
-      navigate('/news', { replace: true })
+      navigate('/', { replace: true })
     }
 
     return () => {
@@ -74,7 +74,7 @@ export const LoginPage = () => {
     }
 
     setAuthUser(data.user)
-    navigate('/news', { replace: true })
+    navigate('/', { replace: true })
   }
 
   return (

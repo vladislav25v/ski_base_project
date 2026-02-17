@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './FormModal.module.scss'
 
 type FormModalProps = {
@@ -29,7 +30,11 @@ export const FormModal = ({
     onRequestClose()
   }
 
-  return (
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return createPortal(
     <div
       className={`${styles.modalOverlay} ${
         isClosing ? styles.modalOverlayClosing : styles.modalOverlayOpen
@@ -56,6 +61,7 @@ export const FormModal = ({
         </div>
         <div className={styles.modalBody}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -52,6 +52,11 @@ const masonryBreakpoints = {
 const joinClassNames = (...classes: Array<string | undefined | false>) =>
   classes.filter(Boolean).join(' ')
 
+const sortByNewest = <T extends { createdAt: string }>(items: T[]) =>
+  [...items].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )
+
 const GalleryImage = ({
   src,
   alt,
@@ -431,14 +436,26 @@ export const GalleryPage = () => {
       return nextIndex >= 0 ? nextIndex : null
     })
   }
+
+  const handleSortByDate = () => {
+    setItems((current) => sortByNewest(current))
+    setViewerIndex(null)
+    setViewerError('')
+  }
+
   return (
     <section className={styles.page}>
       <header className={styles.header}>
-        {isAdmin && (
-          <Button variant="outline" onClick={openUploadModal}>
-            {'Добавить фото'}
+        <div className={styles.headerActions}>
+          <Button variant="outline" onClick={handleSortByDate}>
+            {'Сортировка'}
           </Button>
-        )}
+          {isAdmin && (
+            <Button variant="outline" onClick={openUploadModal}>
+              {'Добавить фото'}
+            </Button>
+          )}
+        </div>
       </header>
 
       {loadError && <p className={styles.pageError}>{loadError}</p>}

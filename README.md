@@ -1,7 +1,6 @@
 # Волонтёрский проект сайта для лыжной базы в городе Тында
 
-Стэк - React + TypeScript + Vite
-Развёрнут на Vercel
+Стэк - React + TypeScript + Vite + SCSS
 [skitynda.ru](https://skitynda.ru)
 
 ## Ski Base Site
@@ -10,5 +9,5 @@ Front-end for the ski school website. Includes public pages, news feed, and admi
 
 ### Stack
 
-- React + TypeScript + Vite
-- Custom API + Postgres + Vercel
+- React + TypeScript + Vite + SCSS
+- Custom API + Postgres + s3
