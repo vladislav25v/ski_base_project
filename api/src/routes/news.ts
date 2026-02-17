@@ -2,7 +2,7 @@
 import multer from 'multer'
 import { prisma } from '../db/prisma.js'
 import { requireAdmin } from '../middleware/auth.js'
-import { getStoragePathFromUrl, removeFileSafe, uploadImage } from '../storage/index.js'
+import { buildPublicUrl, getStoragePathFromUrl, removeFileSafe, uploadImage } from '../storage/index.js'
 
 const router = Router()
 
@@ -31,13 +31,20 @@ router.get('/', async (req, res) => {
     })
 
     return res.json({
-      items: items.map((item: typeof items[number]) => ({
-        id: item.id,
-        createdAt: item.createdAt.toISOString(),
-        title: item.title,
-        text: item.text,
-        imageUrl: item.imageUrl,
-      })),
+      items: items.map((item: typeof items[number]) => {
+        const imageUrl = item.imageUrl
+          ? item.imageUrl.startsWith('http')
+            ? item.imageUrl
+            : buildPublicUrl(item.imageUrl)
+          : null
+        return {
+          id: item.id,
+          createdAt: item.createdAt.toISOString(),
+          title: item.title,
+          text: item.text,
+          imageUrl,
+        }
+      }),
     })
   } catch (error) {
     console.error('Failed to load news', error)
@@ -63,44 +70,51 @@ router.post('/', requireAdmin, upload.single('image'), async (req, res) => {
     return res.status(400).json({ error: 'Invalid id' })
   }
 
-  let previousImageUrl: string | null = null
+  let previousImageKey: string | null = null
   if (typeof id === 'number') {
     const existing = await prisma.news.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ error: 'Not found' })
     }
-    previousImageUrl = existing.imageUrl
+    previousImageKey = existing.imageUrl
   }
 
-  let newImageUrl = previousImageUrl
+  let newImageKey = previousImageKey
   let uploadedPath: string | null = null
 
   if (req.file) {
     const uploadResult = await uploadImage(IMAGE_DIR, req.file)
     uploadedPath = uploadResult.key
-    newImageUrl = uploadResult.publicUrl
+    newImageKey = uploadResult.key
   } else if (removeImage) {
-    newImageUrl = null
+    newImageKey = null
   }
 
   try {
-    const payload = { title, text, imageUrl: newImageUrl }
+    const payload = { title, text, imageUrl: newImageKey }
     const data = typeof id === 'number'
       ? await prisma.news.update({ where: { id }, data: payload })
       : await prisma.news.create({ data: payload })
 
-    if (previousImageUrl && (removeImage || (newImageUrl && newImageUrl !== previousImageUrl))) {
-      const previousPath = getStoragePathFromUrl(previousImageUrl)
+    if (previousImageKey && (removeImage || (newImageKey && newImageKey !== previousImageKey))) {
+      const previousPath =
+        getStoragePathFromUrl(previousImageKey) ??
+        (previousImageKey.startsWith('http') ? null : previousImageKey)
       await removeFileSafe(previousPath)
     }
 
+    const imageUrl = data.imageUrl
+      ? data.imageUrl.startsWith('http')
+        ? data.imageUrl
+        : buildPublicUrl(data.imageUrl)
+      : null
     return res.json({
       item: {
         id: data.id,
         createdAt: data.createdAt.toISOString(),
         title: data.title,
         text: data.text,
-        imageUrl: data.imageUrl,
+        imageUrl,
       },
     })
   } catch (error) {
@@ -123,7 +137,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     return res.status(404).json({ error: 'Not found' })
   }
 
-  const imagePath = existing.imageUrl ? getStoragePathFromUrl(existing.imageUrl) : null
+  const imagePath = existing.imageUrl
+    ? getStoragePathFromUrl(existing.imageUrl) ??
+      (existing.imageUrl.startsWith('http') ? null : existing.imageUrl)
+    : null
   if (imagePath) {
     await removeFileSafe(imagePath)
   }
