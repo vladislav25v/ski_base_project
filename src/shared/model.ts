@@ -37,6 +37,27 @@ export type ScheduleDay = {
 
 export type ScheduleFormDay = ScheduleDay
 
+export type TrainingSessionRecord = {
+  id: number
+  start_time: string
+  end_time: string
+}
+
+export type TrainingSessionUpsert = Omit<TrainingSessionRecord, 'id'>
+
+export type TrainingDayRecord = {
+  id: number
+  day_of_week: number
+  is_open: boolean
+  sessions: TrainingSessionRecord[]
+}
+
+export type TrainingDayUpsert = {
+  day_of_week: number
+  is_open: boolean
+  sessions: TrainingSessionUpsert[]
+}
+
 export type GalleryPicture = {
   id: string
   createdAt: string

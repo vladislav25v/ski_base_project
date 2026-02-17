@@ -54,8 +54,17 @@ model TrainingSchedule {
   id        Int      @id @default(autoincrement())
   dayOfWeek Int      @unique @map("day_of_week")
   isOpen    Boolean  @default(false) @map("is_open")
-  startTime String?  @map("start_time")
-  endTime   String?  @map("end_time")
+  slots     TrainingScheduleSlot[]
 
   @@map("training_schedule")
+}
+
+model TrainingScheduleSlot {
+  id        Int              @id @default(autoincrement())
+  dayId     Int              @map("day_id")
+  startTime String           @map("start_time")
+  endTime   String           @map("end_time")
+  day       TrainingSchedule @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@map("training_schedule_slots")
 }

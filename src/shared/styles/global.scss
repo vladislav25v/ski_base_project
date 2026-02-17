@@ -18,3 +18,58 @@ body {
   background-attachment: fixed;
   color: var(--color-text);
 }
+
+body[data-theme='dark'] input::selection,
+body[data-theme='dark'] textarea::selection,
+body[data-theme='dark'] select::selection {
+  background: #dada00;
+  color: #000000;
+}
+
+body[data-theme='dark'] input::-moz-selection,
+body[data-theme='dark'] textarea::-moz-selection,
+body[data-theme='dark'] select::-moz-selection {
+  background: #dada00;
+  color: #000000;
+}
+
+body[data-theme='dark'] input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid #dada00;
+  border-radius: 4px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+body[data-theme='dark'] input[type='checkbox']::after {
+  content: '';
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  transform: translateY(-2px) rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform 120ms ease-in-out;
+}
+
+body[data-theme='dark'] input[type='checkbox']:checked {
+  background: #dada00;
+  border-color: #dada00;
+}
+
+body[data-theme='dark'] input[type='checkbox']:checked::after {
+  transform: translateY(-2px) rotate(-45deg) scale(1);
+}
+
+body[data-theme='dark'] input[type='time']::-webkit-datetime-edit-hour-field:focus,
+body[data-theme='dark'] input[type='time']::-webkit-datetime-edit-minute-field:focus {
+  background-color: #dada00;
+  color: #000000;
+  border-radius: 4px;
+}

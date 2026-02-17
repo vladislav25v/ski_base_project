@@ -8,8 +8,12 @@ const router = Router()
 const daySchema = z.object({
   day_of_week: z.number().int().min(1).max(7),
   is_open: z.boolean(),
-  start_time: z.string().nullable(),
-  end_time: z.string().nullable(),
+  sessions: z.array(
+    z.object({
+      start_time: z.string(),
+      end_time: z.string(),
+    }),
+  ),
 })
 
 const scheduleSchema = z.object({
@@ -20,6 +24,11 @@ router.get('/', async (_req, res) => {
   try {
     const rows = await prisma.trainingSchedule.findMany({
       orderBy: { dayOfWeek: 'asc' },
+      include: {
+        slots: {
+          orderBy: { startTime: 'asc' },
+        },
+      },
     })
 
     return res.json({
@@ -27,8 +36,11 @@ router.get('/', async (_req, res) => {
         id: row.id,
         day_of_week: row.dayOfWeek,
         is_open: row.isOpen,
-        start_time: row.startTime,
-        end_time: row.endTime,
+        sessions: row.slots.map((slot) => ({
+          id: slot.id,
+          start_time: slot.startTime,
+          end_time: slot.endTime,
+        })),
       })),
     })
   } catch (error) {
@@ -45,25 +57,58 @@ router.put('/', requireAdmin, async (req, res) => {
 
   const { days } = parsed.data
 
+  for (const day of days) {
+    const sortedSessions = [...day.sessions].sort((left, right) =>
+      left.start_time.localeCompare(right.start_time),
+    )
+
+    if (day.is_open && sortedSessions.length === 0) {
+      return res.status(400).json({ error: 'Open day must contain at least one session' })
+    }
+
+    for (let index = 0; index < sortedSessions.length; index += 1) {
+      const session = sortedSessions[index]
+      if (session.start_time >= session.end_time) {
+        return res.status(400).json({ error: 'Session end time must be after start time' })
+      }
+      if (index > 0 && sortedSessions[index - 1].end_time > session.start_time) {
+        return res.status(400).json({ error: 'Sessions must not overlap' })
+      }
+    }
+  }
+
   try {
-    await prisma.$transaction(
-      days.map((day) =>
-        prisma.trainingSchedule.upsert({
+    await prisma.$transaction(async (tx) => {
+      for (const day of days) {
+        const sortedSessions = [...day.sessions].sort((left, right) =>
+          left.start_time.localeCompare(right.start_time),
+        )
+        const dayRecord = await tx.trainingSchedule.upsert({
           where: { dayOfWeek: day.day_of_week },
           update: {
             isOpen: day.is_open,
-            startTime: day.start_time,
-            endTime: day.end_time,
           },
           create: {
             dayOfWeek: day.day_of_week,
             isOpen: day.is_open,
-            startTime: day.start_time,
-            endTime: day.end_time,
           },
-        }),
-      ),
-    )
+        })
+
+        await tx.trainingScheduleSlot.deleteMany({
+          where: { dayId: dayRecord.id },
+        })
+
+        if (day.is_open && sortedSessions.length > 0) {
+          await tx.trainingScheduleSlot.createMany({
+            data: sortedSessions.map((session) => ({
+              dayId: dayRecord.id,
+              startTime: session.start_time,
+              endTime: session.end_time,
+            })),
+          })
+        }
+      }
+    })
 
     return res.json({ success: true })
   } catch (error) {

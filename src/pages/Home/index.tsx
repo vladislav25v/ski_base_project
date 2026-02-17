@@ -6,6 +6,7 @@ import { apiClient } from '../../shared/lib'
 import type { NewsItem } from '../../shared/model'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import { ScheduleSection } from '../../shared/features/schedule'
+import { TrainingScheduleSection } from '../../shared/features/trainingSchedule'
 import { getGalleryPublicUrl } from '../../shared/features/gallery/api'
 import { buildBlurDataUrl } from '../../shared/features/gallery/utils'
 import animationData from '../../assets/loaders/animation (2).json'
@@ -325,10 +326,9 @@ export const HomePage = () => {
       ) : (
         <p className={styles.latestStatus}>{'Пока нет новостей.'}</p>
       )}
-      <ScheduleSection
+      <TrainingScheduleSection
         title="График тренировки детей"
         titleLinkTo="/training"
-        apiPath="/training-schedule"
         compact
       />
       <ScheduleSection

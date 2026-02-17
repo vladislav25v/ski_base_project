@@ -1,12 +1,8 @@
 import styles from './Training.module.scss'
-import { ScheduleSection } from '../../shared/features/schedule'
+import { TrainingScheduleSection } from '../../shared/features/trainingSchedule'
 
 export const TrainingPage = () => (
   <section className={styles.page}>
-    <ScheduleSection
-      title="График тренировки детей"
-      apiPath="/training-schedule"
-      compact
-    />
+    <TrainingScheduleSection title="График тренировки детей" compact />
   </section>
 )
