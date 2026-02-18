@@ -1,15 +1,21 @@
 ﻿import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
-import { Button, FormModal, NewsForm, useModalClosing } from '../../shared/ui'
-import { apiClient, getAuthUser, subscribeAuth } from '../../shared/lib'
+import {
+  useDeleteNewsMutation,
+  useGetNewsQuery,
+  useUpsertNewsMutation,
+} from '../../app/store/apiSlice'
+import { useAppSelector } from '../../app/store/hooks'
+import { selectIsAdmin } from '../../app/store/slices/authSlice'
+import { selectTheme } from '../../app/store/slices/uiSlice'
+import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
 import type { NewsItem } from '../../shared/model'
+import { Button, FormModal, NewsForm, useModalClosing } from '../../shared/ui'
+import { NewsCard } from '../../shared/features/news/NewsCard'
 import styles from './News.module.scss'
 import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
 import animationData from '../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
-import { NewsCard } from '../../shared/features/news/NewsCard'
-
-const initialNews: NewsItem[] = []
 
 const sortByNewest = (items: NewsItem[]) =>
   [...items].sort(
@@ -24,7 +30,6 @@ const formatDate = (value: string) =>
   })
 
 export const NewsPage = () => {
-  const [news, setNews] = useState<NewsItem[]>(() => sortByNewest(initialNews))
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
@@ -34,31 +39,31 @@ export const NewsPage = () => {
   const [isImageRemoved, setIsImageRemoved] = useState(false)
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') {
-      return 'light'
-    }
-
-    const storedTheme = localStorage.getItem('theme')
-    if (storedTheme === 'dark' || storedTheme === 'light') {
-      return storedTheme
-    }
-
-    return document.body.dataset.theme === 'dark' ? 'dark' : 'light'
-  })
+  const isAdmin = useAppSelector(selectIsAdmin)
+  const theme = useAppSelector(selectTheme)
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
   const successCloseTimeoutRef = useRef<number | null>(null)
 
-  const orderedNews = useMemo(() => sortByNewest(news), [news])
+  const {
+    data: newsData = [],
+    isLoading,
+    isError,
+    error: newsError,
+  } = useGetNewsQuery()
+  const [upsertNews] = useUpsertNewsMutation()
+  const [deleteNews] = useDeleteNewsMutation()
+
+  const orderedNews = useMemo(() => sortByNewest(newsData), [newsData])
   const isModalOpen = isCreating || editingId !== null
   const isModalBusy = isSaving || isUploading
   const closeDelayMs = 220
+  const pageError = !isCreating && editingId === null
+    ? formError || (isError ? getRtkErrorMessage(newsError, 'Ошибка загрузки данных') : '')
+    : ''
 
   const closeCreateForm = () => {
     setIsCreating(false)
@@ -99,60 +104,6 @@ export const NewsPage = () => {
     closeDelayMs,
     onClose: closeModalImmediate,
   })
-
-  useEffect(() => {
-    let isMounted = true
-
-    const fetchNews = async () => {
-      setIsLoading(true)
-      const { data, error } = await apiClient.get<{ items: NewsItem[] }>('/news')
-
-      if (!isMounted) {
-        return
-      }
-
-      if (error) {
-        setFormError('Ошибка загрузки данных')
-        setIsLoading(false)
-        return
-      }
-
-      const items = data?.items ?? []
-      setNews(items)
-      setIsLoading(false)
-    }
-
-    fetchNews()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  useEffect(() => {
-    const updateAdmin = () => {
-      const user = getAuthUser()
-      setIsAdmin(user?.role === 'admin')
-    }
-
-    updateAdmin()
-    const unsubscribe = subscribeAuth(() => updateAdmin())
-    return () => {
-      unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
-    })
-
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
 
   useEffect(() => {
     if (!isLoading || !loaderRef.current) {
@@ -258,6 +209,7 @@ export const NewsPage = () => {
     setIsSaving(true)
     setFormError('')
     setSuccessMessage('')
+
     try {
       const formData = new FormData()
       formData.append('title', trimmedTitle)
@@ -273,27 +225,8 @@ export const NewsPage = () => {
       }
 
       setIsUploading(Boolean(draftImageFile))
-      const { data, error } = await apiClient.upload<{ item?: NewsItem }>('/news', formData)
+      const payload = await upsertNews(formData).unwrap()
       setIsUploading(false)
-
-      if (error) {
-        setFormError(error.message)
-        setIsSaving(false)
-        return
-      }
-
-      const payload = data?.item
-      if (!payload) {
-        setFormError('Ошибка сохранения.')
-        setIsSaving(false)
-        return
-      }
-
-      if (isCreating) {
-        setNews((current) => [payload, ...current])
-      } else if (typeof id === 'number') {
-        setNews((current) => current.map((item) => (item.id === id ? payload : item)))
-      }
 
       setSuccessMessage('Успешно')
       setDraftImageFile(null)
@@ -306,9 +239,8 @@ export const NewsPage = () => {
       successCloseTimeoutRef.current = window.setTimeout(() => {
         requestCloseModal()
       }, 1000)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ошибка сохранения.'
-      setFormError(message)
+    } catch (saveError) {
+      setFormError(getRtkErrorMessage(saveError, 'Ошибка сохранения.'))
       setIsSaving(false)
       setIsUploading(false)
     }
@@ -317,27 +249,26 @@ export const NewsPage = () => {
   const handleDelete = async (id: number) => {
     setIsDeleting(true)
     setIsSaving(true)
-    const { error } = await apiClient.del<{ success: boolean }>(`/news/${id}`)
-    if (error) {
-      setFormError(error.message)
+
+    try {
+      await deleteNews(id).unwrap()
+      if (editingId === id) {
+        setFormError('')
+      }
+      setSuccessMessage('Успешно')
       setIsSaving(false)
       setIsDeleting(false)
-      return
+      if (successCloseTimeoutRef.current !== null) {
+        window.clearTimeout(successCloseTimeoutRef.current)
+      }
+      successCloseTimeoutRef.current = window.setTimeout(() => {
+        requestCloseModal()
+      }, 1000)
+    } catch (deleteError) {
+      setFormError(getRtkErrorMessage(deleteError, 'Ошибка удаления.'))
+      setIsSaving(false)
+      setIsDeleting(false)
     }
-
-    setNews((current) => current.filter((item) => item.id !== id))
-    if (editingId === id) {
-      setFormError('')
-    }
-    setSuccessMessage('Успешно')
-    setIsSaving(false)
-    setIsDeleting(false)
-    if (successCloseTimeoutRef.current !== null) {
-      window.clearTimeout(successCloseTimeoutRef.current)
-    }
-    successCloseTimeoutRef.current = window.setTimeout(() => {
-      requestCloseModal()
-    }, 1000)
   }
 
   return (
@@ -352,9 +283,7 @@ export const NewsPage = () => {
           )}
         </div>
       </header>
-      {formError && !isCreating && editingId === null && (
-        <p className={styles.pageError}>{formError}</p>
-      )}
+      {pageError && <p className={styles.pageError}>{pageError}</p>}
       {isLoading && (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />

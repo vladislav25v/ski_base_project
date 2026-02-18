@@ -1,15 +1,21 @@
 ﻿import type { SyntheticEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../shared/ui'
+import { useLoginMutation } from '../../app/store/apiSlice'
+import { useAppDispatch, useAppSelector } from '../../app/store/hooks'
+import { selectIsAdmin, setAuthUser } from '../../app/store/slices/authSlice'
+import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
 import type { AuthCredentials } from '../../shared/model'
-import { apiClient, getAuthUser, setAuthUser } from '../../shared/lib'
+import { Button } from '../../shared/ui'
 import styles from './Login.module.scss'
 
 const emailPattern = /^\S+@\S+\.\S+$/
 
 export const LoginPage = () => {
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const isAdmin = useAppSelector(selectIsAdmin)
+  const [login] = useLoginMutation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -23,17 +29,10 @@ export const LoginPage = () => {
   }, [email, password])
 
   useEffect(() => {
-    let isMounted = true
-
-    const user = getAuthUser()
-    if (isMounted && user?.role === 'admin') {
+    if (isAdmin) {
       navigate('/', { replace: true })
     }
-
-    return () => {
-      isMounted = false
-    }
-  }, [navigate])
+  }, [isAdmin, navigate])
 
   const handleSubmit = async (event: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     event.preventDefault()
@@ -57,24 +56,20 @@ export const LoginPage = () => {
       password: trimmedPassword,
     }
 
-    const { data, error: signInError } = await apiClient.post<{
-      user: { id: string; email: string; role: string }
-    }>('/auth/login', credentials)
+    try {
+      const data = await login(credentials).unwrap()
+      if (data.user.role !== 'admin') {
+        setError('Нет доступа к админке.')
+        setIsSubmitting(false)
+        return
+      }
 
-    if (signInError || !data) {
-      setError(signInError?.message ?? 'Ошибка авторизации.')
+      dispatch(setAuthUser(data.user))
+      navigate('/', { replace: true })
+    } catch (loginError) {
+      setError(getRtkErrorMessage(loginError, 'Ошибка авторизации.'))
       setIsSubmitting(false)
-      return
     }
-
-    if (data.user.role !== 'admin') {
-      setError('Нет доступа к админке.')
-      setIsSubmitting(false)
-      return
-    }
-
-    setAuthUser(data.user)
-    navigate('/', { replace: true })
   }
 
   return (

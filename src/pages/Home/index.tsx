@@ -1,14 +1,16 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { Link } from 'react-router-dom'
-import styles from './Home.module.scss'
-import { apiClient } from '../../shared/lib'
+import { useGetGalleryQuery, useGetNewsQuery } from '../../app/store/apiSlice'
+import { useAppSelector } from '../../app/store/hooks'
+import { selectTheme } from '../../app/store/slices/uiSlice'
+import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
 import type { NewsItem } from '../../shared/model'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import { ScheduleSection } from '../../shared/features/schedule'
 import { TrainingScheduleSection } from '../../shared/features/trainingSchedule'
-import { getGalleryPublicUrl } from '../../shared/features/gallery/api'
-import { buildBlurDataUrl } from '../../shared/features/gallery/utils'
+import { buildBlurDataUrl, shuffleItems } from '../../shared/features/gallery/utils'
+import styles from './Home.module.scss'
 import animationData from '../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
 
@@ -41,22 +43,38 @@ const getRandomIndex = (length: number, exclude: number) => {
 }
 
 export const HomePage = () => {
-  const [latestNews, setLatestNews] = useState<NewsItem | null>(null)
-  const [isNewsLoading, setIsNewsLoading] = useState(true)
-  const [newsError, setNewsError] = useState('')
-  const [galleryItems, setGalleryItems] = useState<
-    Array<{ url: string; alt: string; blurhash?: string | null }>
-  >([])
   const [loadedImageUrls, setLoadedImageUrls] = useState<Record<string, true>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
   const [nextIndex, setNextIndex] = useState<number | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [isRandomLoading, setIsRandomLoading] = useState(true)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    document.body.dataset.theme === 'dark' ? 'dark' : 'light',
-  )
+  const theme = useAppSelector(selectTheme)
   const randomLoaderRef = useRef<HTMLDivElement | null>(null)
   const transitionTimeoutRef = useRef<number | null>(null)
+
+  const {
+    data: latestNewsItems = [],
+    isLoading: isNewsLoading,
+    isError: isNewsError,
+    error: newsQueryError,
+  } = useGetNewsQuery({ limit: 1 })
+  const { data: galleryData = [], isLoading: isGalleryLoading } = useGetGalleryQuery()
+
+  const latestNews: NewsItem | null = latestNewsItems[0] ?? null
+  const isRandomLoading = isGalleryLoading
+
+  const galleryItems = useMemo(
+    () =>
+      shuffleItems(
+        galleryData
+          .filter((item) => Boolean(item.publicUrl))
+          .map((item) => ({
+            url: item.publicUrl,
+            alt: item.caption || 'Фотография из галереи',
+            blurhash: item.blurhash ?? null,
+          })),
+      ),
+    [galleryData],
+  )
 
   const latestDate = useMemo(() => {
     if (!latestNews) {
@@ -65,22 +83,25 @@ export const HomePage = () => {
     return formatDate(latestNews.createdAt)
   }, [latestNews])
 
-  const currentItem = galleryItems[currentIndex]
-  const nextItem = nextIndex !== null ? galleryItems[nextIndex] : null
+  const safeCurrentIndex = galleryItems.length > 0 ? currentIndex % galleryItems.length : 0
+  const currentItem = galleryItems[safeCurrentIndex]
+  const nextItem = nextIndex !== null && galleryItems.length > 0
+    ? galleryItems[nextIndex % galleryItems.length]
+    : null
 
   const currentBlurDataUrl = useMemo(() => {
-    if (!currentItem?.blurhash) {
+    if (!currentItem || !currentItem.blurhash) {
       return null
     }
     return buildBlurDataUrl(currentItem.blurhash)
-  }, [currentItem?.blurhash])
+  }, [currentItem])
 
   const nextBlurDataUrl = useMemo(() => {
-    if (!nextItem?.blurhash) {
+    if (!nextItem || !nextItem.blurhash) {
       return null
     }
     return buildBlurDataUrl(nextItem.blurhash)
-  }, [nextItem?.blurhash])
+  }, [nextItem])
 
   const mapWidgetSrc = useMemo(() => {
     const src = new URL('https://yandex.ru/map-widget/v1/')
@@ -103,92 +124,14 @@ export const HomePage = () => {
   }
 
   useEffect(() => {
-    let isMounted = true
-
-    const fetchLatestNews = async () => {
-      setIsNewsLoading(true)
-      const { data, error } = await apiClient.get<{ items: NewsItem[] }>('/news?limit=1')
-
-      if (!isMounted) {
-        return
-      }
-
-      if (error) {
-        setNewsError('Не удалось загрузить новости.')
-        setIsNewsLoading(false)
-        return
-      }
-
-      const item = data?.items?.[0]
-      if (item) {
-        setLatestNews(item)
-      } else {
-        setLatestNews(null)
-      }
-      setIsNewsLoading(false)
-    }
-
-    fetchLatestNews()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let isMounted = true
-
-    const fetchPreviewImage = async () => {
-      setIsRandomLoading(true)
-      const { data, error } = await apiClient.get<{
-        items: Array<{ storagePath: string; caption?: string | null; blurhash?: string | null }>
-      }>('/gallery')
-
-      if (!isMounted || error || !data || data.items.length === 0) {
-        if (isMounted) {
-          setIsRandomLoading(false)
-        }
-        return
-      }
-
-      const items = data.items
-        .filter((item) => Boolean(item.storagePath))
-        .map((item) => ({
-          url: getGalleryPublicUrl(item.storagePath) ?? '',
-          alt: item.caption || 'Фотография из галереи',
-          blurhash: item.blurhash ?? null,
-        }))
-        .filter((item) => Boolean(item.url))
-
-      if (items.length === 0) {
-        setIsRandomLoading(false)
-        return
-      }
-
-      const initialIndex = Math.floor(Math.random() * items.length)
-      setGalleryItems(items)
-      setLoadedImageUrls({})
-      setCurrentIndex(initialIndex)
-      setNextIndex(null)
-      setIsTransitioning(false)
-      setIsRandomLoading(false)
-    }
-
-    fetchPreviewImage()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  useEffect(() => {
     if (galleryItems.length < 2) {
       return
     }
 
     const intervalId = window.setInterval(() => {
       setCurrentIndex((index) => {
-        const upcomingIndex = getRandomIndex(galleryItems.length, index)
+        const safeIndex = index % galleryItems.length
+        const upcomingIndex = getRandomIndex(galleryItems.length, safeIndex)
         setNextIndex(upcomingIndex)
         setIsTransitioning(true)
 
@@ -202,7 +145,7 @@ export const HomePage = () => {
           setNextIndex(null)
         }, 1000)
 
-        return index
+        return safeIndex
       })
     }, 10000)
 
@@ -214,18 +157,6 @@ export const HomePage = () => {
       }
     }
   }, [galleryItems])
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
-    })
-
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
 
   useEffect(() => {
     if (!isRandomLoading || !randomLoaderRef.current) {
@@ -244,6 +175,8 @@ export const HomePage = () => {
       animation.destroy()
     }
   }, [isRandomLoading, theme])
+
+  const newsError = isNewsError ? getRtkErrorMessage(newsQueryError, 'Не удалось загрузить новости.') : ''
 
   return (
     <section className={styles.page}>
@@ -317,36 +250,18 @@ export const HomePage = () => {
       ) : latestNews ? (
         <>
           <h2 className={styles.announcementTitle}>{'Объявление'}</h2>
-          <NewsCard
-            item={latestNews}
-            dateLabel={latestDate}
-            text={getPreviewText(latestNews.text)}
-          />
+          <NewsCard item={latestNews} dateLabel={latestDate} text={getPreviewText(latestNews.text)} />
         </>
       ) : (
         <p className={styles.latestStatus}>{'Пока нет новостей.'}</p>
       )}
-      <TrainingScheduleSection
-        title="График тренировки детей"
-        titleLinkTo="/training"
-        compact
-      />
-      <ScheduleSection
-        title="График работы проката лыж"
-        titleLinkTo="/rental"
-        apiPath="/schedule"
-        compact
-      />
+      <TrainingScheduleSection title="График тренировки детей" titleLinkTo="/training" compact />
+      <ScheduleSection title="График работы проката лыж" titleLinkTo="/rental" apiPath="/schedule" compact />
       <div>
         <h2 className={styles.mapTitle}>Как добраться</h2>
         <p className={styles.mapText}>На автобусе №3 до остановки "улица Автомобилистов"</p>
       </div>
-      <iframe
-        className={styles.mapFrame}
-        src={mapWidgetSrc}
-        allowFullScreen
-        title="Лыжная база на карте"
-      />
+      <iframe className={styles.mapFrame} src={mapWidgetSrc} allowFullScreen title="Лыжная база на карте" />
     </section>
   )
 }

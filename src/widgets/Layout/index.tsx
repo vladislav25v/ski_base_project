@@ -1,31 +1,30 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { useGetMeQuery, useLogoutMutation } from '../../app/store/apiSlice'
+import { useAppDispatch, useAppSelector } from '../../app/store/hooks'
+import { clearAuthUser, selectIsAdmin, setAuthUser } from '../../app/store/slices/authSlice'
 import {
-  apiClient,
-  applyRouteSeo,
-  clearAuthUser,
-  getAuthUser,
-  subscribeAuth,
-  syncAuthUser,
-} from '../../shared/lib'
+  closeMenu,
+  selectMenuOpen,
+  selectTheme,
+  setTheme,
+  toggleMenu,
+} from '../../app/store/slices/uiSlice'
+import { applyRouteSeo } from '../../shared/lib'
 import { Header } from '../Header'
 import { Menu } from '../Menu'
 import { Footer } from '../footer'
 import styles from './Layout.module.scss'
 
 export const Layout = () => {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const dispatch = useAppDispatch()
   const location = useLocation()
+  const menuOpen = useAppSelector(selectMenuOpen)
+  const theme = useAppSelector(selectTheme)
+  const isAdmin = useAppSelector(selectIsAdmin)
+  const { data: meUser, isSuccess: isMeSuccess, isError: isMeError } = useGetMeQuery()
+  const [logout] = useLogoutMutation()
   const isHome = location.pathname === '/'
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') {
-      return 'light'
-    }
-
-    return (localStorage.getItem('theme') as 'light' | 'dark') ?? 'light'
-  })
-
-  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
@@ -45,35 +44,31 @@ export const Layout = () => {
   }, [location.pathname])
 
   useEffect(() => {
-    const updateAdmin = () => {
-      const user = getAuthUser()
-      setIsAdmin(user?.role === 'admin')
+    if (isMeSuccess && meUser) {
+      dispatch(setAuthUser(meUser))
+      return
     }
-
-    updateAdmin()
-    const unsubscribe = subscribeAuth(updateAdmin)
-    void syncAuthUser()
-    return () => {
-      unsubscribe()
+    if (isMeError) {
+      dispatch(clearAuthUser())
     }
-  }, [])
+  }, [dispatch, isMeError, isMeSuccess, meUser])
 
   const handleMenuClose = () => {
-    setMenuOpen(false)
+    dispatch(closeMenu())
   }
 
   const handleLogout = () => {
-    clearAuthUser()
-    void apiClient.post('/auth/logout', {})
+    dispatch(clearAuthUser())
+    void logout()
   }
 
   return (
     <div className={styles.layout}>
       <Header
         menuOpen={menuOpen}
-        onMenuToggle={() => setMenuOpen((open) => !open)}
+        onMenuToggle={() => dispatch(toggleMenu())}
         theme={theme}
-        onThemeChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
       />
       <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>

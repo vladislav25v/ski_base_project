@@ -1,9 +1,13 @@
 ﻿import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { Link } from 'react-router-dom'
-import { apiClient, getAuthUser, subscribeAuth } from '../../lib'
-import { Button, FormModal, ScheduleForm, useModalClosing } from '../../ui'
+import { useGetScheduleQuery, useUpdateScheduleMutation } from '../../../app/store/apiSlice'
+import { useAppSelector } from '../../../app/store/hooks'
+import { selectIsAdmin } from '../../../app/store/slices/authSlice'
+import { selectTheme } from '../../../app/store/slices/uiSlice'
+import { getRtkErrorMessage } from '../../lib/rtkQuery'
 import type { ScheduleDay, ScheduleDayRecord, ScheduleDayUpsert } from '../../model'
+import { Button, FormModal, ScheduleForm, useModalClosing } from '../../ui'
 import animationData from '../../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../../assets/loaders/animation_transparent_yellow_dada00.json'
 import styles from './Schedule.module.scss'
@@ -80,90 +84,35 @@ export const ScheduleSection = ({
   const [days, setDays] = useState<ScheduleDay[]>(() => buildDefaultSchedule())
   const [displayDays, setDisplayDays] = useState<ScheduleDay[]>([])
   const [hasScheduleData, setHasScheduleData] = useState(false)
-  const [loadError, setLoadError] = useState('')
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const isAdmin = useAppSelector(selectIsAdmin)
   const [isEditing, setIsEditing] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') {
-      return 'light'
-    }
-
-    const storedTheme = localStorage.getItem('theme')
-    if (storedTheme === 'dark' || storedTheme === 'light') {
-      return storedTheme
-    }
-
-    return document.body.dataset.theme === 'dark' ? 'dark' : 'light'
-  })
+  const theme = useAppSelector(selectTheme)
   const successCloseTimeoutRef = useRef<number | null>(null)
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
-  const isMountedRef = useRef(true)
+
+  const {
+    data: scheduleRows = [],
+    isLoading,
+    isFetching,
+    isError,
+    error: scheduleError,
+  } = useGetScheduleQuery(apiPath)
+  const [updateSchedule] = useUpdateScheduleMutation()
+
+  useEffect(() => {
+    setDisplayDays(scheduleRows.map(mapRowToDisplayDay))
+    setHasScheduleData(scheduleRows.length > 0)
+    setDays(mergeSchedule(scheduleRows))
+  }, [scheduleRows])
 
   const orderedDays = useMemo(() => days, [days])
   const closeDelayMs = 220
-
-  const fetchSchedule = async (withLoading = true) => {
-    if (withLoading) {
-      setIsLoading(true)
-    }
-    const { data, error } = await apiClient.get<{ items: ScheduleDayRecord[] }>(apiPath)
-
-    if (!isMountedRef.current) {
-      return
-    }
-
-    if (error) {
-      setLoadError('Ошибка загрузки из бд')
-      setIsLoading(false)
-      return
-    }
-
-    const rows = data?.items ?? []
-    setDisplayDays(rows.map(mapRowToDisplayDay))
-    setHasScheduleData(rows.length > 0)
-    setDays(mergeSchedule(rows))
-    setIsLoading(false)
-  }
-
-  useEffect(() => {
-    isMountedRef.current = true
-    fetchSchedule()
-
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [apiPath])
-
-  useEffect(() => {
-    const updateAdmin = () => {
-      const user = getAuthUser()
-      setIsAdmin(user?.role === 'admin')
-    }
-
-    updateAdmin()
-    const unsubscribe = subscribeAuth(() => updateAdmin())
-
-    return () => {
-      unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
-    })
-
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
+  const loadError = isError ? getRtkErrorMessage(scheduleError, 'Ошибка загрузки из бд') : ''
+  const isLoadingView = isLoading || (isFetching && scheduleRows.length === 0)
 
   useEffect(() => {
     return () => {
@@ -175,7 +124,7 @@ export const ScheduleSection = ({
   }, [])
 
   useEffect(() => {
-    if (!isLoading || !loaderRef.current) {
+    if (!isLoadingView || !loaderRef.current) {
       return
     }
 
@@ -190,7 +139,7 @@ export const ScheduleSection = ({
     return () => {
       animation.destroy()
     }
-  }, [isLoading, theme])
+  }, [isLoadingView, theme])
 
   useEffect(() => {
     if (!isSaving || !modalLoaderRef.current) {
@@ -288,23 +237,20 @@ export const ScheduleSection = ({
       end_time: day.isOpen ? day.endTime : null,
     }))
 
-    const { error } = await apiClient.put<{ success: boolean }>(apiPath, { days: payload })
-
-    if (error) {
-      setFormError(error.message || 'Ошибка сохранения.')
+    try {
+      await updateSchedule({ path: apiPath, days: payload }).unwrap()
+      setSuccessMessage('Сохранено')
       setIsSaving(false)
-      return
+      if (successCloseTimeoutRef.current !== null) {
+        window.clearTimeout(successCloseTimeoutRef.current)
+      }
+      successCloseTimeoutRef.current = window.setTimeout(() => {
+        requestCloseModal()
+      }, 1000)
+    } catch (saveError) {
+      setFormError(getRtkErrorMessage(saveError, 'Ошибка сохранения.'))
+      setIsSaving(false)
     }
-
-    await fetchSchedule()
-    setSuccessMessage('Сохранено')
-    setIsSaving(false)
-    if (successCloseTimeoutRef.current !== null) {
-      window.clearTimeout(successCloseTimeoutRef.current)
-    }
-    successCloseTimeoutRef.current = window.setTimeout(() => {
-      requestCloseModal()
-    }, 1000)
   }
 
   return (
@@ -328,7 +274,7 @@ export const ScheduleSection = ({
 
       {loadError && <p className={styles.error}>{loadError}</p>}
 
-      {isLoading ? (
+      {isLoadingView ? (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
           <p className={styles.loaderText}>{'Загрузка...'}</p>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 
 type UseModalClosingOptions = {
   isOpen: boolean
@@ -13,15 +13,33 @@ type UseModalClosingResult = {
   requestClose: () => void
 }
 
+type ClosingPhase = 'idle' | 'closing'
+
+type ClosingAction =
+  | { type: 'START_CLOSING' }
+  | { type: 'RESET' }
+
+const closingReducer = (state: ClosingPhase, action: ClosingAction): ClosingPhase => {
+  switch (action.type) {
+    case 'START_CLOSING':
+      return state === 'closing' ? state : 'closing'
+    case 'RESET':
+      return 'idle'
+    default:
+      return state
+  }
+}
+
 export const useModalClosing = ({
   isOpen,
   isBusy = false,
   closeDelayMs = 220,
   onClose,
 }: UseModalClosingOptions): UseModalClosingResult => {
-  const [isClosing, setIsClosing] = useState(false)
+  const [phase, dispatch] = useReducer(closingReducer, 'idle')
   const closeTimeoutRef = useRef<number | null>(null)
   const onCloseRef = useRef(onClose)
+  const isClosing = phase === 'closing'
 
   useEffect(() => {
     onCloseRef.current = onClose
@@ -39,20 +57,19 @@ export const useModalClosing = ({
       return
     }
     clearCloseTimeout()
-    setIsClosing(true)
+    dispatch({ type: 'START_CLOSING' })
     closeTimeoutRef.current = window.setTimeout(() => {
-      setIsClosing(false)
+      dispatch({ type: 'RESET' })
       onCloseRef.current()
     }, closeDelayMs)
   }, [isClosing, isBusy, closeDelayMs, clearCloseTimeout])
 
   useEffect(() => {
-    if (isOpen || !isClosing) {
+    if (isOpen) {
       return
     }
     clearCloseTimeout()
-    setIsClosing(false)
-  }, [isOpen, isClosing, clearCloseTimeout])
+  }, [isOpen, clearCloseTimeout])
 
   useEffect(() => {
     return () => {

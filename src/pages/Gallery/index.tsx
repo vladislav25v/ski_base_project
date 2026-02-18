@@ -9,15 +9,18 @@
 } from 'react'
 import lottie from 'lottie-web'
 import Masonry from 'react-masonry-css'
-import type { GalleryPicture } from '../../shared/model'
-import { Button, FormModal, useModalClosing } from '../../shared/ui'
-import { getAuthUser, subscribeAuth } from '../../shared/lib'
 import {
-  deleteGalleryPicture,
-  fetchGalleryPictures,
-  getGalleryPublicUrl,
-  uploadGalleryPictures,
-} from '../../shared/features/gallery/api'
+  type GalleryItem,
+  type GalleryUploadMeta,
+  useDeleteGalleryPictureMutation,
+  useGetGalleryQuery,
+  useUploadGalleryMutation,
+} from '../../app/store/apiSlice'
+import { useAppSelector } from '../../app/store/hooks'
+import { selectIsAdmin } from '../../app/store/slices/authSlice'
+import { selectTheme } from '../../app/store/slices/uiSlice'
+import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
+import { Button, FormModal, useModalClosing } from '../../shared/ui'
 import {
   buildBlurDataUrl,
   getImageMetadata,
@@ -28,10 +31,6 @@ import styles from './Gallery.module.scss'
 import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
 import animationData from '../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
-
-type GalleryItem = GalleryPicture & {
-  publicUrl: string
-}
 
 type GalleryImageProps = {
   src: string
@@ -97,12 +96,8 @@ const GalleryImage = ({
 
 export const GalleryPage = () => {
   const [items, setItems] = useState<GalleryItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    document.body.dataset.theme === 'dark' ? 'dark' : 'light',
-  )
+  const isAdmin = useAppSelector(selectIsAdmin)
+  const theme = useAppSelector(selectTheme)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [uploadFiles, setUploadFiles] = useState<File[]>([])
   const [uploadCaption, setUploadCaption] = useState('')
@@ -117,66 +112,26 @@ export const GalleryPage = () => {
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
   const successCloseTimeoutRef = useRef<number | null>(null)
-  const isMountedRef = useRef(true)
   const closeDelayMs = 220
   const isUploadBusy = isUploading || isSaving
   const isViewerOpen = viewerIndex !== null
   const activeItem = viewerIndex !== null ? items[viewerIndex] : null
 
+  const {
+    data: galleryData = [],
+    isLoading,
+    isError,
+    error: galleryError,
+  } = useGetGalleryQuery()
+  const [uploadGallery] = useUploadGalleryMutation()
+  const [deleteGalleryPicture] = useDeleteGalleryPictureMutation()
+
+  useEffect(() => {
+    setItems(shuffleItems(galleryData))
+  }, [galleryData])
+
   const orderedItems = useMemo(() => items, [items])
-
-  useEffect(() => {
-    isMountedRef.current = true
-
-    const fetchGallery = async () => {
-      setIsLoading(true)
-      const { items: loadedItems, error } = await fetchGalleryPictures()
-      if (!isMountedRef.current) {
-        return
-      }
-
-      if (error) {
-        setLoadError('Ошибка загрузки галереи.')
-        setIsLoading(false)
-        return
-      }
-
-      setItems(shuffleItems(loadedItems))
-      setIsLoading(false)
-    }
-
-    fetchGallery()
-
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [])
-
-  useEffect(() => {
-    const updateAdmin = () => {
-      const user = getAuthUser()
-      setIsAdmin(user?.role === 'admin')
-    }
-
-    updateAdmin()
-    const unsubscribe = subscribeAuth(() => updateAdmin())
-
-    return () => {
-      unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
-    })
-
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
+  const loadError = isError ? getRtkErrorMessage(galleryError, 'Ошибка загрузки галереи.') : ''
 
   useEffect(() => {
     if (!isLoading || !loaderRef.current) {
@@ -362,7 +317,7 @@ export const GalleryPage = () => {
     setSuccessMessage('')
 
     try {
-      const meta = await Promise.all(
+      const meta: GalleryUploadMeta[] = await Promise.all(
         uploadFiles.map(async (file) => {
           const { width, height, blurhash } = await getImageMetadata(file)
           return {
@@ -373,21 +328,7 @@ export const GalleryPage = () => {
           }
         }),
       )
-      const { data, error } = await uploadGalleryPictures(uploadFiles, meta)
-      if (error) {
-        throw new Error(error.message || 'Ошибка загрузки изображения.')
-      }
-      const itemsPayload = (data as { items?: GalleryPicture[] } | null)?.items ?? []
-      const createdItems: GalleryItem[] = itemsPayload.map((item) => ({
-        id: item.id,
-        createdAt: item.createdAt,
-        storagePath: item.storagePath,
-        caption: item.caption,
-        width: item.width,
-        height: item.height,
-        blurhash: item.blurhash,
-        publicUrl: getGalleryPublicUrl(item.storagePath),
-      }))
+      const createdItems = await uploadGallery({ files: uploadFiles, meta }).unwrap()
 
       if (createdItems.length > 0) {
         setItems((current) => shuffleItems([...createdItems, ...current]))
@@ -404,9 +345,8 @@ export const GalleryPage = () => {
       successCloseTimeoutRef.current = window.setTimeout(() => {
         requestCloseUpload()
       }, 1000)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ошибка загрузки.'
-      setFormError(message)
+    } catch (uploadError) {
+      setFormError(getRtkErrorMessage(uploadError, 'Ошибка загрузки.'))
       setIsUploading(false)
       setIsSaving(false)
     }
@@ -419,22 +359,21 @@ export const GalleryPage = () => {
     setIsDeleting(true)
     setViewerError('')
 
-    const { error } = await deleteGalleryPicture(activeItem.id)
-    if (error) {
-      setViewerError(error.message || 'Ошибка удаления.')
+    try {
+      await deleteGalleryPicture(activeItem.id).unwrap()
+      setItems((current) => current.filter((item) => item.id !== activeItem.id))
       setIsDeleting(false)
-      return
+      setViewerIndex((current) => {
+        if (current === null) {
+          return null
+        }
+        const nextIndex = Math.min(current, items.length - 2)
+        return nextIndex >= 0 ? nextIndex : null
+      })
+    } catch (deleteError) {
+      setViewerError(getRtkErrorMessage(deleteError, 'Ошибка удаления.'))
+      setIsDeleting(false)
     }
-
-    setItems((current) => current.filter((item) => item.id !== activeItem.id))
-    setIsDeleting(false)
-    setViewerIndex((current) => {
-      if (current === null) {
-        return null
-      }
-      const nextIndex = Math.min(current, items.length - 2)
-      return nextIndex >= 0 ? nextIndex : null
-    })
   }
 
   const handleSortByDate = () => {

@@ -47,6 +47,7 @@ app.use('/training-schedule', trainingScheduleRouter)
 app.use('/gallery', galleryRouter)
 
 app.use(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const message = err instanceof Error ? err.message : 'Unexpected error'
     console.error('Request failed', {

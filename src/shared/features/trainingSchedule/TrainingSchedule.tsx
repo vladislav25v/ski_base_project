@@ -1,9 +1,16 @@
-import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { type CSSProperties, type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { Link } from 'react-router-dom'
-import { apiClient, getAuthUser, subscribeAuth } from '../../lib'
-import { Button, FormModal, useModalClosing } from '../../ui'
+import {
+  useGetTrainingScheduleQuery,
+  useUpdateTrainingScheduleMutation,
+} from '../../../app/store/apiSlice'
+import { useAppSelector } from '../../../app/store/hooks'
+import { selectIsAdmin } from '../../../app/store/slices/authSlice'
+import { selectTheme } from '../../../app/store/slices/uiSlice'
+import { getRtkErrorMessage } from '../../lib/rtkQuery'
 import type { TrainingDayRecord, TrainingDayUpsert } from '../../model'
+import { Button, FormModal, useModalClosing } from '../../ui'
 import animationData from '../../../assets/loaders/animation (2).json'
 import animationDataYellow from '../../../assets/loaders/animation_transparent_yellow_dada00.json'
 import formStyles from '../../ui/forms/commonForm/CommonForm.module.scss'
@@ -84,88 +91,41 @@ export const TrainingScheduleSection = ({
   compact = false,
 }: TrainingScheduleSectionProps) => {
   const [days, setDays] = useState<TrainingDay[]>(() => buildDefaultDays())
-  const [displayDays, setDisplayDays] = useState<TrainingDay[]>([])
-  const [hasScheduleData, setHasScheduleData] = useState(false)
-  const [loadError, setLoadError] = useState('')
   const [formError, setFormError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const isAdmin = useAppSelector(selectIsAdmin)
   const [isEditing, setIsEditing] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    document.body.dataset.theme === 'dark' ? 'dark' : 'light',
-  )
+  const theme = useAppSelector(selectTheme)
 
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
   const successCloseTimeoutRef = useRef<number | null>(null)
-  const isMountedRef = useRef(true)
   const closeDelayMs = 220
+
+  const {
+    data: trainingRows = [],
+    isLoading,
+    isFetching,
+    isError,
+    error: trainingError,
+  } = useGetTrainingScheduleQuery()
+  const [updateTrainingSchedule] = useUpdateTrainingScheduleMutation()
+
+  const mergedDays = useMemo(() => mergeDays(trainingRows), [trainingRows])
 
   const sortedDisplayDays = useMemo(
     () =>
-      displayDays.map((day) => ({
+      mergedDays.map((day) => ({
         ...day,
         sessions: toSortedSessions(day.sessions),
       })),
-    [displayDays],
+    [mergedDays],
   )
+  const hasScheduleData = mergedDays.some((day) => day.isOpen && day.sessions.length > 0)
 
-  const fetchSchedule = async (withLoading = true) => {
-    if (withLoading) {
-      setIsLoading(true)
-    }
-    const { data, error } = await apiClient.get<{ items: TrainingDayRecord[] }>('/training-schedule')
-
-    if (!isMountedRef.current) {
-      return
-    }
-
-    if (error) {
-      setLoadError('Ошибка загрузки из бд')
-      setIsLoading(false)
-      return
-    }
-
-    const rows = data?.items ?? []
-    const merged = mergeDays(rows)
-    setDisplayDays(merged)
-    setDays(merged)
-    setHasScheduleData(merged.some((day) => day.isOpen && day.sessions.length > 0))
-    setIsLoading(false)
-  }
-
-  useEffect(() => {
-    isMountedRef.current = true
-    void fetchSchedule()
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [])
-
-  useEffect(() => {
-    const updateAdmin = () => {
-      const user = getAuthUser()
-      setIsAdmin(user?.role === 'admin')
-    }
-
-    updateAdmin()
-    const unsubscribe = subscribeAuth(updateAdmin)
-    return () => {
-      unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(document.body.dataset.theme === 'dark' ? 'dark' : 'light')
-    })
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
+  const isLoadingView = isLoading || (isFetching && trainingRows.length === 0)
+  const loadError = isError ? getRtkErrorMessage(trainingError, 'Ошибка загрузки из бд') : ''
 
   useEffect(() => {
     return () => {
@@ -177,7 +137,7 @@ export const TrainingScheduleSection = ({
   }, [])
 
   useEffect(() => {
-    if (!isLoading || !loaderRef.current) {
+    if (!isLoadingView || !loaderRef.current) {
       return
     }
     const animation = lottie.loadAnimation({
@@ -190,7 +150,7 @@ export const TrainingScheduleSection = ({
     return () => {
       animation.destroy()
     }
-  }, [isLoading, theme])
+  }, [isLoadingView, theme])
 
   useEffect(() => {
     if (!isSaving || !modalLoaderRef.current) {
@@ -213,6 +173,7 @@ export const TrainingScheduleSection = ({
       window.clearTimeout(successCloseTimeoutRef.current)
       successCloseTimeoutRef.current = null
     }
+    setDays(mergedDays)
     setFormError('')
     setSuccessMessage('')
     setIsEditing(true)
@@ -334,22 +295,20 @@ export const TrainingScheduleSection = ({
       }
     })
 
-    const { error } = await apiClient.put<{ success: boolean }>('/training-schedule', { days: payload })
-    if (error) {
-      setFormError(error.message || 'Ошибка сохранения.')
+    try {
+      await updateTrainingSchedule({ days: payload }).unwrap()
+      setSuccessMessage('Сохранено')
       setIsSaving(false)
-      return
+      if (successCloseTimeoutRef.current !== null) {
+        window.clearTimeout(successCloseTimeoutRef.current)
+      }
+      successCloseTimeoutRef.current = window.setTimeout(() => {
+        requestCloseModal()
+      }, 1000)
+    } catch (saveError) {
+      setFormError(getRtkErrorMessage(saveError, 'Ошибка сохранения.'))
+      setIsSaving(false)
     }
-
-    await fetchSchedule(false)
-    setSuccessMessage('Сохранено')
-    setIsSaving(false)
-    if (successCloseTimeoutRef.current !== null) {
-      window.clearTimeout(successCloseTimeoutRef.current)
-    }
-    successCloseTimeoutRef.current = window.setTimeout(() => {
-      requestCloseModal()
-    }, 1000)
   }
 
   return (
@@ -373,7 +332,7 @@ export const TrainingScheduleSection = ({
 
       {loadError && <p className={styles.error}>{loadError}</p>}
 
-      {isLoading ? (
+      {isLoadingView ? (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
           <p className={styles.loaderText}>{'Загрузка...'}</p>

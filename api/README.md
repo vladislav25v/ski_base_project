@@ -1,11 +1,32 @@
 ﻿# API (Express + Prisma)
 
-## Команды
+## Создание Docker контейнеров (первый запуск)
 
-npm run dev
-npm run prisma:generate
+PostgreSQL:
+
+docker run --name ski-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ski -p 5432:5432 -d postgres:16
+
+S3 (MinIO):
+
+docker run --name ski-minio -e MINIO_ROOT_USER=minio -e MINIO_ROOT_PASSWORD=minio123 -p 9000:9000 -p 9001:9001 -d minio/minio server /data --console-address ":9001"
+
+После создания контейнеров используйте `docker start ski-pg` и `docker start ski-minio`.
+
+## Локальный запуск
+
+1. Зависимост npm i
+
+2. Поднять бд и s3 в докере.
+
+docker start ski-pg
+docker start ski-minio
+
+3. Применить миграции и сид:
+
 npm run prisma:migrate
 npm run prisma:seed
+
+4. npm run dev
 
 ## Локальный env (`api/.env`)
 
