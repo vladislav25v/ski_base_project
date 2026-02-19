@@ -51,7 +51,7 @@
 }
 
 @mixin button-square {
-  width: clamp(40px, 5vw, 44px);
+  width: clamp(50px, 5vw, 55px);
   height: clamp(40px, 5vw, 44px);
   border-radius: 12px;
   padding: 0;

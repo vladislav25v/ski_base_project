@@ -37,7 +37,7 @@
 .navLink {
   text-decoration: none;
   color: inherit;
-  font-size: 18px;
+  font-size: clamp(12px, 2vw, 24px);
   font-weight: 500;
   transition:
     opacity 120ms ease,

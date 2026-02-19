@@ -10,9 +10,11 @@ import { NewsCard } from '../../shared/features/news/NewsCard'
 import { ScheduleSection } from '../../shared/features/schedule'
 import { TrainingScheduleSection } from '../../shared/features/trainingSchedule'
 import { buildBlurDataUrl, shuffleItems } from '../../shared/features/gallery/utils'
+import { LoaderFallbackDots } from '../../shared/ui'
 import styles from './Home.module.scss'
-import animationData from '../../assets/loaders/animation (2).json'
-import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
+
+const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
+const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('ru-RU', {
@@ -168,7 +170,7 @@ export const HomePage = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
 
     return () => {
@@ -186,6 +188,7 @@ export const HomePage = () => {
         {isRandomLoading ? (
           <div className={styles.heroLoader} role="status" aria-live="polite">
             <div className={styles.heroLoaderAnimation} ref={randomLoaderRef} />
+            <LoaderFallbackDots />
           </div>
         ) : galleryItems.length > 0 ? (
           <Link className={styles.heroLink} to="/gallery">

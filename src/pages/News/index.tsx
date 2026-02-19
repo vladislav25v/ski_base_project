@@ -10,12 +10,13 @@ import { selectIsAdmin } from '../../app/store/slices/authSlice'
 import { selectTheme } from '../../app/store/slices/uiSlice'
 import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
 import type { NewsItem } from '../../shared/model'
-import { Button, FormModal, NewsForm, useModalClosing } from '../../shared/ui'
+import { Button, FormModal, LoaderFallbackDots, NewsForm, useModalClosing } from '../../shared/ui'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import styles from './News.module.scss'
 import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
-import animationData from '../../assets/loaders/animation (2).json'
-import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
+
+const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
+const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
 
 const sortByNewest = (items: NewsItem[]) =>
   [...items].sort(
@@ -115,7 +116,7 @@ export const NewsPage = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
 
     return () => {
@@ -133,7 +134,7 @@ export const NewsPage = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
 
     return () => {
@@ -287,7 +288,11 @@ export const NewsPage = () => {
       {isLoading && (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
-          <p className={styles.loaderText}>{'Загрузка...'}</p>
+          <p className={styles.loaderText}>
+            {'Загрузка...'}
+            {' '}
+            <LoaderFallbackDots />
+          </p>
         </div>
       )}
       <div className={styles.list}>
@@ -317,7 +322,11 @@ export const NewsPage = () => {
           {isModalBusy && (
             <div className={styles.modalLoader} role="status" aria-live="polite">
               <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
-              <span>{isDeleting ? 'Удаление...' : 'Загрузка...'}</span>
+              <span>
+                {isDeleting ? 'Удаление...' : 'Загрузка...'}
+                {' '}
+                <LoaderFallbackDots />
+              </span>
             </div>
           )}
           {successMessage && <p className={formStyles.success}>{successMessage}</p>}

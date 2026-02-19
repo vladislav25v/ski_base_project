@@ -10,11 +10,12 @@ import { selectIsAdmin } from '../../../app/store/slices/authSlice'
 import { selectTheme } from '../../../app/store/slices/uiSlice'
 import { getRtkErrorMessage } from '../../lib/rtkQuery'
 import type { TrainingDayRecord, TrainingDayUpsert } from '../../model'
-import { Button, FormModal, useModalClosing } from '../../ui'
-import animationData from '../../../assets/loaders/animation (2).json'
-import animationDataYellow from '../../../assets/loaders/animation_transparent_yellow_dada00.json'
+import { Button, FormModal, LoaderFallbackDots, useModalClosing } from '../../ui'
 import formStyles from '../../ui/forms/commonForm/CommonForm.module.scss'
 import styles from './TrainingSchedule.module.scss'
+
+const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
+const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
 
 const DAYS: Array<{ id: number; label: string }> = [
   { id: 1, label: 'Понедельник' },
@@ -145,7 +146,7 @@ export const TrainingScheduleSection = ({
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
     return () => {
       animation.destroy()
@@ -161,7 +162,7 @@ export const TrainingScheduleSection = ({
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
     return () => {
       animation.destroy()
@@ -335,7 +336,11 @@ export const TrainingScheduleSection = ({
       {isLoadingView ? (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
-          <p className={styles.loaderText}>{'Загрузка...'}</p>
+          <p className={styles.loaderText}>
+            {'Загрузка...'}
+            {' '}
+            <LoaderFallbackDots />
+          </p>
         </div>
       ) : !hasScheduleData ? (
         <p className={styles.notice}>{'Пока нет добавленных тренировок.'}</p>
@@ -377,7 +382,11 @@ export const TrainingScheduleSection = ({
           {isSaving && (
             <div className={styles.modalLoader} role="status" aria-live="polite">
               <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
-              <span>{'Загрузка...'}</span>
+              <span>
+                {'Загрузка...'}
+                {' '}
+                <LoaderFallbackDots />
+              </span>
             </div>
           )}
 

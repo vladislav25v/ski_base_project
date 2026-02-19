@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { useAppSelector } from '../../../app/store/hooks'
 import { selectTheme } from '../../../app/store/slices/uiSlice'
-import animationData from '../../../assets/loaders/animation (2).json'
-import animationDataYellow from '../../../assets/loaders/animation_transparent_yellow_dada00.json'
-import { Button } from '../../ui'
+import { Button, LoaderFallbackDots } from '../../ui'
 import { toLatLon, trackRoutes } from './model'
 import styles from './TracksMap.module.scss'
+
+const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
+const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
 
 type YMapsApi = {
   ready: (handler: () => void) => void
@@ -186,7 +187,7 @@ export const TracksMap = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
 
     return () => {
@@ -271,7 +272,11 @@ export const TracksMap = () => {
         {!isMapReady && !mapError && (
           <div className={styles.loader} role="status" aria-live="polite">
             <div className={styles.loaderAnimation} ref={loaderRef} />
-            <p className={styles.loaderText}>{'Загрузка карты...'}</p>
+            <p className={styles.loaderText}>
+              {'Загрузка карты...'}
+              {' '}
+              <LoaderFallbackDots />
+            </p>
           </div>
         )}
         <div ref={mapRef} className={styles.map} />

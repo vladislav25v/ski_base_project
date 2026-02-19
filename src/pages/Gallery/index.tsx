@@ -20,7 +20,7 @@ import { useAppSelector } from '../../app/store/hooks'
 import { selectIsAdmin } from '../../app/store/slices/authSlice'
 import { selectTheme } from '../../app/store/slices/uiSlice'
 import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
-import { Button, FormModal, useModalClosing } from '../../shared/ui'
+import { Button, FormModal, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
 import {
   buildBlurDataUrl,
   getImageMetadata,
@@ -29,8 +29,9 @@ import {
 } from '../../shared/features/gallery/utils'
 import styles from './Gallery.module.scss'
 import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
-import animationData from '../../assets/loaders/animation (2).json'
-import animationDataYellow from '../../assets/loaders/animation_transparent_yellow_dada00.json'
+
+const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
+const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
 
 type GalleryImageProps = {
   src: string
@@ -143,7 +144,7 @@ export const GalleryPage = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
 
     return () => {
@@ -161,7 +162,7 @@ export const GalleryPage = () => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      animationData: theme === 'dark' ? animationDataYellow : animationData,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
     })
 
     return () => {
@@ -402,7 +403,11 @@ export const GalleryPage = () => {
       {isLoading ? (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
-          <p className={styles.loaderText}>{'Загрузка...'}</p>
+          <p className={styles.loaderText}>
+            {'Загрузка...'}
+            {' '}
+            <LoaderFallbackDots />
+          </p>
         </div>
       ) : orderedItems.length === 0 ? (
         <p className={styles.empty}>{'Пока нет фотографий.'}</p>
@@ -447,7 +452,11 @@ export const GalleryPage = () => {
           {isUploadBusy && (
             <div className={styles.modalLoader} role="status" aria-live="polite">
               <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
-              <span>{'Загрузка...'}</span>
+              <span>
+                {'Загрузка...'}
+                {' '}
+                <LoaderFallbackDots />
+              </span>
             </div>
           )}
           {successMessage && <p className={formStyles.success}>{successMessage}</p>}
