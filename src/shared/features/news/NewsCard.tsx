@@ -8,6 +8,7 @@ type NewsCardProps = {
   item: NewsItem
   dateLabel?: string
   text?: string
+  clickable?: boolean
   isAdmin?: boolean
   isEditing?: boolean
   onEdit?: () => void
@@ -17,6 +18,7 @@ export const NewsCard = ({
   item,
   dateLabel,
   text,
+  clickable = true,
   isAdmin = false,
   isEditing = false,
   onEdit,
@@ -29,8 +31,8 @@ export const NewsCard = ({
     onEdit?.()
   }
 
-  return (
-    <Link className={styles.card} to="/news">
+  const cardContent = (
+    <>
       {showHeader && (
         <div className={styles.cardHeader}>
           {dateLabel && <span className={styles.date}>{dateLabel}</span>}
@@ -46,6 +48,16 @@ export const NewsCard = ({
       )}
       <h2 className={styles.cardTitle}>{item.title}</h2>
       <p className={styles.text}>{text ?? item.text}</p>
+    </>
+  )
+
+  if (!clickable) {
+    return <article className={styles.card}>{cardContent}</article>
+  }
+
+  return (
+    <Link className={styles.card} to="/news">
+      {cardContent}
     </Link>
   )
 }

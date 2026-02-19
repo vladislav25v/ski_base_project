@@ -304,6 +304,7 @@ export const NewsPage = () => {
               key={item.id}
               item={item}
               dateLabel={formatDate(item.createdAt)}
+              clickable={false}
               isAdmin={isAdmin}
               isEditing={isEditing}
               onEdit={() => startEdit(item)}
