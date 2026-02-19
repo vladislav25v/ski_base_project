@@ -30,10 +30,9 @@ export const Toggle = ({
       onClick={() => onChange(!checked)}
       {...props}
     >
-      <span className={styles.label}>
-        <span className={styles.labelText}>{label}</span>
-        {!checked && <span className={styles.labelCaption}>(разрешено по средам)</span>}
-      </span>
+      <span className={styles.labelText}>{label}</span>
+      {!checked && <span className={styles.labelCaption}>(разрешено по средам)</span>}
+
       <span className={styles.track}>
         <span className={styles.thumb} />
       </span>

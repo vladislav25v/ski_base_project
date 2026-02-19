@@ -10,3 +10,9 @@
   flex: 1;
   padding: 20px;
 }
+
+@media (max-width: 320px) {
+  .main {
+    padding: 12px 8px;
+  }
+}

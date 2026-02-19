@@ -10,6 +10,16 @@
   padding: 20px;
 }
 
+@media (max-width: 320px) {
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 8px;
+  }
+}
+
 .footerLoader {
   position: block;
   top: 12px;

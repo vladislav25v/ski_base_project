@@ -1,3 +1,5 @@
+@use '../../shared/styles/mixins.scss' as mixins;
+
 .page {
   display: grid;
   gap: 24px;
