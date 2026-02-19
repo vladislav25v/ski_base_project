@@ -1,4 +1,6 @@
 ﻿import {
+  Suspense,
+  lazy,
   type ChangeEvent,
   type CSSProperties,
   useCallback,
@@ -20,18 +22,36 @@ import { useAppSelector } from '../../app/store/hooks'
 import { selectIsAdmin } from '../../app/store/slices/authSlice'
 import { selectTheme } from '../../app/store/slices/uiSlice'
 import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
-import { Button, FormModal, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
+import { Button, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
 import {
   buildBlurDataUrl,
-  getImageMetadata,
-  getImageValidationError,
   shuffleItems,
 } from '../../shared/features/gallery/utils'
 import styles from './Gallery.module.scss'
-import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
+const GalleryUploadModal = lazy(() =>
+  import('./GalleryUploadModal').then((module) => ({ default: module.GalleryUploadModal })),
+)
 
 const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
 const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
+let uploadUtilsPromise:
+  | Promise<
+      Pick<
+        typeof import('../../shared/features/gallery/utils'),
+        'getImageMetadata' | 'getImageValidationError'
+      >
+    >
+  | null = null
+
+const loadUploadUtils = () => {
+  if (!uploadUtilsPromise) {
+    uploadUtilsPromise = import('../../shared/features/gallery/utils').then((module) => ({
+      getImageMetadata: module.getImageMetadata,
+      getImageValidationError: module.getImageValidationError,
+    }))
+  }
+  return uploadUtilsPromise
+}
 
 type GalleryImageProps = {
   src: string
@@ -120,7 +140,8 @@ export const GalleryPage = () => {
 
   const {
     data: galleryData = [],
-    isLoading,
+    isFetching,
+    isSuccess,
     isError,
     error: galleryError,
   } = useGetGalleryQuery()
@@ -133,9 +154,13 @@ export const GalleryPage = () => {
 
   const orderedItems = useMemo(() => items, [items])
   const loadError = isError ? getRtkErrorMessage(galleryError, 'Ошибка загрузки галереи.') : ''
+  const isGalleryPending =
+    (!isSuccess && !isError) || (isFetching && galleryData.length === 0 && orderedItems.length === 0)
+  const isGalleryHydrating = !isGalleryPending && galleryData.length > 0 && orderedItems.length === 0
+  const shouldShowGalleryLoader = isGalleryPending || isGalleryHydrating
 
   useEffect(() => {
-    if (!isLoading || !loaderRef.current) {
+    if (!shouldShowGalleryLoader || !loaderRef.current) {
       return
     }
 
@@ -150,7 +175,7 @@ export const GalleryPage = () => {
     return () => {
       animation.destroy()
     }
-  }, [isLoading, theme])
+  }, [shouldShowGalleryLoader, theme])
 
   useEffect(() => {
     if (!isUploadBusy || !modalLoaderRef.current) {
@@ -280,17 +305,19 @@ export const GalleryPage = () => {
     }
   }, [isViewerOpen, requestCloseViewer, goNext, goPrev])
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? [])
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target
+    const files = Array.from(input.files ?? [])
     if (files.length === 0) {
       return
     }
 
+    const { getImageValidationError } = await loadUploadUtils()
     const invalidFile = files.find((file) => getImageValidationError(file))
     if (invalidFile) {
       const validationError = getImageValidationError(invalidFile)
       setFormError(validationError || 'Некорректный файл.')
-      event.target.value = ''
+      input.value = ''
       return
     }
 
@@ -305,6 +332,7 @@ export const GalleryPage = () => {
       return
     }
 
+    const { getImageMetadata, getImageValidationError } = await loadUploadUtils()
     const invalidFile = uploadFiles.find((file) => getImageValidationError(file))
     if (invalidFile) {
       const validationError = getImageValidationError(invalidFile)
@@ -400,7 +428,7 @@ export const GalleryPage = () => {
 
       {loadError && <p className={styles.pageError}>{loadError}</p>}
 
-      {isLoading ? (
+      {shouldShowGalleryLoader ? (
         <div className={styles.loader} role="status" aria-live="polite">
           <div className={styles.loaderAnimation} ref={loaderRef} />
           <p className={styles.loaderText}>
@@ -441,71 +469,36 @@ export const GalleryPage = () => {
         </Masonry>
       )}
 
-      {isUploadVisible && (
-        <FormModal
-          title="Добавить фото"
-          isVisible={isUploadVisible}
-          isClosing={isUploadClosing}
-          isBusy={isUploadBusy}
-          onRequestClose={requestCloseUpload}
-        >
-          {isUploadBusy && (
+      {isAdmin && isUploadVisible && (
+        <Suspense
+          fallback={
             <div className={styles.modalLoader} role="status" aria-live="polite">
-              <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
               <span>
-                {'Загрузка...'}
-                {' '}
-                <LoaderFallbackDots />
+                {'Загрузка...'} <LoaderFallbackDots />
               </span>
             </div>
-          )}
-          {successMessage && <p className={formStyles.success}>{successMessage}</p>}
-          <div className={formStyles.form}>
-            <label className={formStyles.field}>
-              <span className={formStyles.label}>{'Изображение'}</span>
-              <input
-                className={formStyles.input}
-                type="file"
-                key={uploadInputKey}
-                accept="image/*"
-                onChange={handleFileChange}
-                multiple
-                disabled={isUploadBusy}
-              />
-              <span className={styles.uploadHint}>{'Максимум 10 МБ, только изображения.'}</span>
-              {uploadFiles.length > 0 && (
-                <span className={styles.fileName}>
-                  {uploadFiles.length === 1
-                    ? uploadFiles[0].name
-                    : `Выбрано файлов: ${uploadFiles.length}`}
-                </span>
-              )}
-            </label>
-            <label className={formStyles.field}>
-              <span className={formStyles.label}>{'Подпись (опционально)'}</span>
-              <input
-                className={formStyles.input}
-                type="text"
-                value={uploadCaption}
-                onChange={(event) => {
-                  setUploadCaption(event.target.value)
-                  setFormError('')
-                  setSuccessMessage('')
-                }}
-                disabled={isUploadBusy}
-              />
-            </label>
-            {formError && <p className={formStyles.error}>{formError}</p>}
-            <div className={formStyles.actions}>
-              <Button onClick={handleUpload} disabled={isUploadBusy}>
-                {'Загрузить'}
-              </Button>
-              <Button variant="outline" onClick={requestCloseUpload} disabled={isUploadBusy}>
-                {'Отмена'}
-              </Button>
-            </div>
-          </div>
-        </FormModal>
+          }
+        >
+          <GalleryUploadModal
+            isVisible={isUploadVisible}
+            isClosing={isUploadClosing}
+            isBusy={isUploadBusy}
+            successMessage={successMessage}
+            formError={formError}
+            uploadInputKey={uploadInputKey}
+            uploadCaption={uploadCaption}
+            uploadFiles={uploadFiles}
+            modalLoaderRef={modalLoaderRef}
+            onRequestClose={requestCloseUpload}
+            onFileChange={handleFileChange}
+            onCaptionChange={(value) => {
+              setUploadCaption(value)
+              setFormError('')
+              setSuccessMessage('')
+            }}
+            onUpload={handleUpload}
+          />
+        </Suspense>
       )}
 
       {isViewerVisible && activeItem && (
@@ -590,3 +583,5 @@ export const GalleryPage = () => {
     </section>
   )
 }
+
+

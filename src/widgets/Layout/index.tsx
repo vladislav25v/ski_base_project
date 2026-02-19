@@ -37,20 +37,6 @@ export const Layout = () => {
   }, [menuOpen])
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const applySystemThemeToSwitch = () => {
-      dispatch(setTheme(mediaQuery.matches ? 'dark' : 'light'))
-    }
-
-    applySystemThemeToSwitch()
-    mediaQuery.addEventListener('change', applySystemThemeToSwitch)
-
-    return () => {
-      mediaQuery.removeEventListener('change', applySystemThemeToSwitch)
-    }
-  }, [dispatch])
-
-  useEffect(() => {
     document.body.dataset.theme = theme
     document.body.dataset.themeMode = themeMode
     document.documentElement.dataset.theme = theme

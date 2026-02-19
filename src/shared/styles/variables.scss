@@ -8,6 +8,7 @@
   --app-bg-image: url('../../assets/background/ChatGPT_Image_Feb_10_2026_09_46_18_AM_fixed.svg');
 }
 
+:root[data-theme='light'],
 body[data-theme='light'] {
   --color-bg-accent: #fdfdfd;
   --color-surface: rgba(255, 255, 255, 0.712);
@@ -16,6 +17,7 @@ body[data-theme='light'] {
   --app-bg-color: #fbf6fa;
 }
 
+:root[data-theme='dark'],
 body[data-theme='dark'] {
   --color-bg-accent: #0f1822;
   --color-surface: rgba(15, 24, 34, 0.781);

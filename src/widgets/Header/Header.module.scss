@@ -45,6 +45,7 @@
   display: inline-flex;
   flex-direction: column;
   grid-column: -3 / -1;
+  justify-self: end;
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1)),
     var(--color-surface);
@@ -80,41 +81,25 @@
   box-shadow:
     0 2px 6px rgba(0, 0, 0, 0.2),
     inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
 
-  @media (max-width: 375px) {
-    .header {
-      padding: 12px 8px;
-    }
-
-    .logo {
-      font-size: 16px;
-      line-height: 1.1;
-    }
-
-    .brand {
-      margin-block-start: 6px;
-      overflow-wrap: anywhere;
-    }
-
-    .actions {
-      gap: 6px;
-    }
-
-    .burger {
-      transform: none;
-    }
-
-    .burger::before {
-      display: none;
-    }
+@media (max-width: 375px) {
+  .header {
+    padding: 12px 8px;
   }
 
-  @media (min-width: 768px) {
-    .burger {
-      display: none;
-    }
+  .logo {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+}
 
-    .actions {
-    }
+@media (min-width: 768px) {
+  .burger {
+    display: none;
+  }
+
+  .toggle {
+    grid-column: 12 / 12;
   }
 }

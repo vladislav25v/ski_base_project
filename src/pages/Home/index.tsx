@@ -49,9 +49,11 @@ export const HomePage = () => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [nextIndex, setNextIndex] = useState<number | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isMapInView, setIsMapInView] = useState(false)
   const theme = useAppSelector(selectTheme)
   const randomLoaderRef = useRef<HTMLDivElement | null>(null)
   const transitionTimeoutRef = useRef<number | null>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
 
   const {
     data: latestNewsItems = [],
@@ -87,9 +89,10 @@ export const HomePage = () => {
 
   const safeCurrentIndex = galleryItems.length > 0 ? currentIndex % galleryItems.length : 0
   const currentItem = galleryItems[safeCurrentIndex]
-  const nextItem = nextIndex !== null && galleryItems.length > 0
-    ? galleryItems[nextIndex % galleryItems.length]
-    : null
+  const nextItem =
+    nextIndex !== null && galleryItems.length > 0
+      ? galleryItems[nextIndex % galleryItems.length]
+      : null
 
   const currentBlurDataUrl = useMemo(() => {
     if (!currentItem || !currentItem.blurhash) {
@@ -178,13 +181,42 @@ export const HomePage = () => {
     }
   }, [isRandomLoading, theme])
 
-  const newsError = isNewsError ? getRtkErrorMessage(newsQueryError, 'Не удалось загрузить новости.') : ''
+  useEffect(() => {
+    if (isMapInView) {
+      return
+    }
+    if (!mapContainerRef.current) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsMapInView(true)
+          observer.disconnect()
+        }
+      },
+      {
+        rootMargin: '200px 0px',
+      },
+    )
+
+    observer.observe(mapContainerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [isMapInView])
+
+  const newsError = isNewsError
+    ? getRtkErrorMessage(newsQueryError, 'Не удалось загрузить новости.')
+    : ''
 
   return (
     <section className={styles.page}>
       <h1>Добро пожаловать на лыжную базу города Тында!</h1>
       <div className={`${styles.hero} ${styles.contentWidth}`}>
-        <img className={styles.heroImageTop} src="/preview.jpg" alt="Снег и трассы" />
+        <img className={styles.heroImageTop} src="/preview.jpg" alt="Снег и лыжи" />
         {isRandomLoading ? (
           <div className={styles.heroLoader} role="status" aria-live="polite">
             <div className={styles.heroLoaderAnimation} ref={randomLoaderRef} />
@@ -202,7 +234,9 @@ export const HomePage = () => {
                 {currentBlurDataUrl ? (
                   <img
                     className={`${styles.heroBlur} ${
-                      currentItem?.url && loadedImageUrls[currentItem.url] ? styles.heroBlurHidden : ''
+                      currentItem?.url && loadedImageUrls[currentItem.url]
+                        ? styles.heroBlurHidden
+                        : ''
                     }`}
                     src={currentBlurDataUrl}
                     alt=""
@@ -221,7 +255,10 @@ export const HomePage = () => {
                 />
               </div>
               {isTransitioning && nextItem ? (
-                <div key={`next-${nextIndex}`} className={`${styles.heroImageLayer} ${styles.heroImageEntering}`}>
+                <div
+                  key={`next-${nextIndex}`}
+                  className={`${styles.heroImageLayer} ${styles.heroImageEntering}`}
+                >
                   {nextBlurDataUrl ? (
                     <img
                       className={`${styles.heroBlur} ${
@@ -253,18 +290,39 @@ export const HomePage = () => {
       ) : latestNews ? (
         <>
           <h2 className={styles.announcementTitle}>{'Объявление'}</h2>
-          <NewsCard item={latestNews} dateLabel={latestDate} text={getPreviewText(latestNews.text)} />
+          <NewsCard
+            item={latestNews}
+            dateLabel={latestDate}
+            text={getPreviewText(latestNews.text)}
+          />
         </>
       ) : (
         <p className={styles.latestStatus}>{'Пока нет новостей.'}</p>
       )}
       <TrainingScheduleSection title="График тренировки детей" titleLinkTo="/training" compact />
-      <ScheduleSection title="График работы проката лыж" titleLinkTo="/rental" apiPath="/schedule" compact />
+      <ScheduleSection
+        title="График работы проката лыж"
+        titleLinkTo="/rental"
+        apiPath="/schedule"
+        compact
+      />
       <div>
         <h2 className={styles.mapTitle}>Как добраться</h2>
         <p className={styles.mapText}>На автобусе №3 до остановки "улица Автомобилистов"</p>
       </div>
-      <iframe className={styles.mapFrame} src={mapWidgetSrc} allowFullScreen title="Лыжная база на карте" />
+      <div className={styles.mapContainer} ref={mapContainerRef}>
+        {isMapInView ? (
+          <iframe
+            className={styles.mapFrame}
+            src={mapWidgetSrc}
+            loading="lazy"
+            allowFullScreen
+            title="Лыжная база на карте"
+          />
+        ) : (
+          <div className={styles.mapPlaceholder} aria-hidden="true" />
+        )}
+      </div>
     </section>
   )
 }

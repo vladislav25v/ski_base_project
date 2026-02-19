@@ -37,9 +37,9 @@
 
 .labelText {
   line-height: 1.2;
-  font-size: clamp(9px, 1vw, 15px);
-  grid-row: 2;
-  align-self: center;
+  font-size: clamp(9px, 1vw, 12px);
+  grid-row: 1;
+  align-self: end;
 }
 
 .labelCaption {
@@ -52,7 +52,7 @@
 }
 
 .track {
-  grid-row: 1;
+  grid-row: 2;
   position: relative;
   width: 44px;
   height: 22px;
@@ -99,10 +99,10 @@
     grid-template-rows: auto auto;
     row-gap: 4px;
     padding-inline-start: 0;
+    justify-items: center;
   }
 
   .labelText {
-    grid-row: 1;
     grid-column: 1;
     align-self: end;
     padding-inline-end: 0;
@@ -110,11 +110,5 @@
 
   .labelCaption {
     display: none;
-  }
-
-  .track {
-    grid-row: 2;
-    grid-column: 1;
-    justify-self: start;
   }
 }

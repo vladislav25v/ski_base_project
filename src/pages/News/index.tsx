@@ -1,4 +1,4 @@
-﻿import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { Suspense, lazy, type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import {
   useDeleteNewsMutation,
@@ -10,10 +10,12 @@ import { selectIsAdmin } from '../../app/store/slices/authSlice'
 import { selectTheme } from '../../app/store/slices/uiSlice'
 import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
 import type { NewsItem } from '../../shared/model'
-import { Button, FormModal, LoaderFallbackDots, NewsForm, useModalClosing } from '../../shared/ui'
+import { Button, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import styles from './News.module.scss'
-import formStyles from '../../shared/ui/forms/commonForm/CommonForm.module.scss'
+const NewsAdminModal = lazy(() =>
+  import('./NewsAdminModal').then((module) => ({ default: module.NewsAdminModal })),
+)
 
 const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
 const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
@@ -312,32 +314,31 @@ export const NewsPage = () => {
           )
         })}
       </div>
-      {isAdmin && (
-        <FormModal
-          title={isCreating ? 'Новая новость' : 'Редактирование новости'}
-          isVisible={isModalVisible}
-          isClosing={isModalClosing}
-          isBusy={isModalBusy}
-          onRequestClose={requestCloseModal}
-        >
-          {isModalBusy && (
+      {isAdmin && isModalVisible && (
+        <Suspense
+          fallback={
             <div className={styles.modalLoader} role="status" aria-live="polite">
-              <div className={styles.modalLoaderAnimation} ref={modalLoaderRef} />
               <span>
-                {isDeleting ? 'Удаление...' : 'Загрузка...'}
-                {' '}
-                <LoaderFallbackDots />
+                {'Загрузка...'} <LoaderFallbackDots />
               </span>
             </div>
-          )}
-          {successMessage && <p className={formStyles.success}>{successMessage}</p>}
-          <NewsForm
-            title={draftTitle}
-            text={draftText}
-            hasImage={Boolean(draftImageUrl || draftImageFile)}
+          }
+        >
+          <NewsAdminModal
+            title={isCreating ? 'Новая новость' : 'Редактирование новости'}
+            isVisible={isModalVisible}
+            isClosing={isModalClosing}
+            isBusy={isModalBusy}
+            isDeleting={isDeleting}
+            successMessage={successMessage}
             formError={formError}
+            draftTitle={draftTitle}
+            draftText={draftText}
+            hasImage={Boolean(draftImageUrl || draftImageFile)}
             isSaving={isSaving}
             isUploading={isUploading}
+            modalLoaderRef={modalLoaderRef}
+            onRequestClose={requestCloseModal}
             onTitleChange={(value) => {
               setDraftTitle(value)
               setFormError('')
@@ -355,11 +356,12 @@ export const NewsPage = () => {
               setIsImageRemoved(true)
             }}
             onSave={() => handleSave(editingId ?? undefined)}
-            onCancel={requestCloseModal}
             onDelete={typeof editingId === 'number' ? () => handleDelete(editingId) : undefined}
           />
-        </FormModal>
+        </Suspense>
       )}
     </section>
   )
 }
+
+
