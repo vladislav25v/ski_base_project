@@ -1,29 +1,48 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../index'
 
-export type ThemeMode = 'light' | 'dark'
+export type Theme = 'light' | 'dark'
+export type ThemeMode = Theme
 
 type UiState = {
   menuOpen: boolean
-  theme: ThemeMode
+  themeMode: ThemeMode
+  theme: Theme
 }
 
-const getInitialTheme = (): ThemeMode => {
+const getSystemTheme = (): Theme => {
   if (typeof window === 'undefined') {
     return 'light'
   }
 
-  const storedTheme = window.localStorage.getItem('theme')
-  if (storedTheme === 'dark' || storedTheme === 'light') {
-    return storedTheme
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+const getInitialThemeMode = (): Theme => {
+  if (typeof window === 'undefined') {
+    return 'light'
   }
 
-  return document.body.dataset.theme === 'dark' ? 'dark' : 'light'
+  const storedMode = window.localStorage.getItem('theme-mode')
+  if (storedMode === 'dark' || storedMode === 'light') {
+    return storedMode
+  }
+
+  const storedLegacyTheme = window.localStorage.getItem('theme')
+  if (storedLegacyTheme === 'dark' || storedLegacyTheme === 'light') {
+    return storedLegacyTheme
+  }
+
+  // System preference is used only once for initial switch position.
+  return getSystemTheme()
 }
+
+const initialThemeMode = getInitialThemeMode()
 
 const initialState: UiState = {
   menuOpen: false,
-  theme: getInitialTheme(),
+  themeMode: initialThemeMode,
+  theme: initialThemeMode,
 }
 
 const uiSlice = createSlice({
@@ -40,6 +59,7 @@ const uiSlice = createSlice({
       state.menuOpen = !state.menuOpen
     },
     setTheme: (state, action: PayloadAction<ThemeMode>) => {
+      state.themeMode = action.payload
       state.theme = action.payload
     },
   },
@@ -50,3 +70,4 @@ export const uiReducer = uiSlice.reducer
 
 export const selectMenuOpen = (state: RootState) => state.ui.menuOpen
 export const selectTheme = (state: RootState) => state.ui.theme
+export const selectThemeMode = (state: RootState) => state.ui.themeMode

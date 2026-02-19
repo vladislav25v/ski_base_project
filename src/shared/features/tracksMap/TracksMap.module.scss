@@ -1,0 +1,127 @@
+.section {
+  --track-line-width: 2px;
+  --track-line-opacity: 0.7;
+  --track-color-1200m: #f4ce14;
+  --track-color-800m: #55a630;
+  --track-color-3km: #1982c4;
+  --track-color-5km: #6a4c93;
+  --track-color-7-5km: #ef476f;
+  --track-color-10km: #ff7b00;
+  --track-color-12-5km: #922929;
+  --track-color-roller1200: #09fce7;
+
+  display: grid;
+  gap: 16px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.animatedBlock {
+  transform: translateY(32px);
+  opacity: 0;
+  animation: rise 700ms ease-out forwards;
+}
+
+.controlsAnimated {
+  animation-delay: 120ms;
+}
+
+.description {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.descriptionAnimated {
+  animation-delay: 260ms;
+}
+
+.description p {
+  margin: 0;
+}
+
+.routeButton {
+  min-width: 88px;
+}
+
+.routeButtonActive {
+  box-shadow: 0 0 0 2px currentColor inset;
+}
+
+.status {
+  margin: 0;
+  font-size: 14px;
+}
+
+.statusError {
+  color: #c1121f;
+}
+
+.statusMuted {
+  color: rgba(35, 35, 35, 0.7);
+}
+
+.map {
+  width: 100%;
+  height: min(68vh, 640px);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.mapAnimated {
+  animation-delay: 180ms;
+}
+
+.mapWrap {
+  position: relative;
+}
+
+.loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+  border-radius: 14px;
+}
+
+.loaderAnimation {
+  width: clamp(120px, 20vw, 200px);
+  height: clamp(120px, 20vw, 200px);
+}
+
+.loaderText {
+  margin: 0;
+  font-size: clamp(13px, 0.6vw + 11px, 15px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .map {
+    height: 56vh;
+  }
+}
+
+@keyframes rise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animatedBlock {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+}

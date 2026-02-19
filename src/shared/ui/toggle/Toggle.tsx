@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
+﻿import type { ButtonHTMLAttributes } from 'react'
 import styles from './Toggle.module.scss'
 
 type ToggleProps = {
@@ -13,8 +13,8 @@ const joinClassNames = (items: Array<string | false | undefined>) => items.filte
 
 export const Toggle = ({
   checked,
-  labelOn = 'выключить свет',
-  labelOff = 'включить свет',
+  labelOn = 'Выключить свет',
+  labelOff = 'Включить свет',
   className,
   onChange,
   ...props
@@ -32,7 +32,7 @@ export const Toggle = ({
     >
       <span className={styles.label}>
         <span className={styles.labelText}>{label}</span>
-        <span className={styles.labelCaption}>(разрешено по средам)</span>
+        {!checked && <span className={styles.labelCaption}>(разрешено по средам)</span>}
       </span>
       <span className={styles.track}>
         <span className={styles.thumb} />

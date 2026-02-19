@@ -5,6 +5,14 @@
   box-sizing: border-box;
 }
 
+html {
+  background-color: var(--app-bg-color);
+  background-image: var(--app-bg-image);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
 body {
   margin: 0 auto;
   min-width: 375px;
@@ -17,6 +25,20 @@ body {
   background-size: cover;
   background-attachment: fixed;
   color: var(--color-text);
+}
+
+html[data-theme='light'],
+body[data-theme='light'] {
+  color-scheme: light;
+  background-color: var(--app-bg-color);
+  background-image: var(--app-bg-image);
+}
+
+html[data-theme='dark'],
+body[data-theme='dark'] {
+  color-scheme: dark;
+  background-color: var(--app-bg-color);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.9)), var(--app-bg-image);
 }
 
 body[data-theme='dark'] input::selection,

@@ -7,6 +7,7 @@ import {
   closeMenu,
   selectMenuOpen,
   selectTheme,
+  selectThemeMode,
   setTheme,
   toggleMenu,
 } from '../../app/store/slices/uiSlice'
@@ -21,6 +22,7 @@ export const Layout = () => {
   const location = useLocation()
   const menuOpen = useAppSelector(selectMenuOpen)
   const theme = useAppSelector(selectTheme)
+  const themeMode = useAppSelector(selectThemeMode)
   const isAdmin = useAppSelector(selectIsAdmin)
   const { data: meUser, isSuccess: isMeSuccess, isError: isMeError } = useGetMeQuery()
   const [logout] = useLogoutMutation()
@@ -35,9 +37,26 @@ export const Layout = () => {
   }, [menuOpen])
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const applySystemThemeToSwitch = () => {
+      dispatch(setTheme(mediaQuery.matches ? 'dark' : 'light'))
+    }
+
+    applySystemThemeToSwitch()
+    mediaQuery.addEventListener('change', applySystemThemeToSwitch)
+
+    return () => {
+      mediaQuery.removeEventListener('change', applySystemThemeToSwitch)
+    }
+  }, [dispatch])
+
+  useEffect(() => {
     document.body.dataset.theme = theme
-    localStorage.setItem('theme', theme)
-  }, [theme])
+    document.body.dataset.themeMode = themeMode
+    document.documentElement.dataset.theme = theme
+    document.documentElement.dataset.themeMode = themeMode
+    localStorage.setItem('theme-mode', themeMode)
+  }, [theme, themeMode])
 
   useEffect(() => {
     applyRouteSeo(location.pathname)

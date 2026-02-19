@@ -1,4 +1,4 @@
-.toggle {
+﻿.toggle {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -19,6 +19,7 @@
     color 120ms ease,
     opacity 120ms ease,
     transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
     opacity: 0.9;
@@ -30,8 +31,8 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-text);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-text);
   }
 }
 

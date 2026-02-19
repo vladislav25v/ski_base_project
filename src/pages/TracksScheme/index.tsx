@@ -1,3 +1,5 @@
+﻿import { TracksMap } from '../../shared/features/tracksMap'
+
 export const TracksSchemePage = () => {
-  return <div>В разработке</div>
+  return <TracksMap />
 }
