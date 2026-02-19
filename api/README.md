@@ -11,7 +11,15 @@ docker run --name ski-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres
 S3 (MinIO):
 
 ```bash
-docker run --name ski-minio -e MINIO_ROOT_USER=minio -e MINIO_ROOT_PASSWORD=minio123 -p 9000:9000 -p 9001:9001 -d minio/minio server /data --console-address ":9001"
+docker run --rm -e MC_HOST_local=http://minio:minio123@host.docker.internal:9000 minio/mc mb --ignore-existing local/dev-bucket
+docker run --rm -e MC_HOST_local=http://minio:minio123@host.docker.internal:9000 minio/mc anonymous set download local/dev-bucket
+
+```
+
+Создать бакет `dev-bucket`:
+
+```bash
+docker run --rm -e MC_HOST_local=http://minio:minio123@host.docker.internal:9000 minio/mc mb --ignore-existing local/dev-bucket
 ```
 
 После создания контейнеров используйте `docker start ski-pg` и `docker start ski-minio`.
@@ -61,10 +69,10 @@ COOKIE_DOMAIN=
 
 S3_ENDPOINT=http://localhost:9000
 S3_REGION=us-east-1
-S3_BUCKET=4804453a-1c0f-495d-ba30-ae2d14457195
+S3_BUCKET=dev-bucket
 S3_ACCESS_KEY=minio
 S3_SECRET_KEY=minio123
-S3_PUBLIC_BASE_URL=http://localhost:9000/4804453a-1c0f-495d-ba30-ae2d14457195
+S3_PUBLIC_BASE_URL=http://localhost:9000/dev-bucket
 ```
 
 ## Endpoints
