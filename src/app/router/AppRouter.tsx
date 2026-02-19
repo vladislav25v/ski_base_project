@@ -1,16 +1,16 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { Layout } from './widgets/Layout'
-import { HomePage } from './pages/Home'
-import { NewsPage } from './pages/News'
-import { TrainingPage } from './pages/Training'
-import { LoginPage } from './pages/Login'
-import { TracksSchemePage } from './pages/TracksScheme'
-import { RentalPage } from './pages/Rental'
-import { GalleryPage } from './pages/Gallery'
-import { ProtocolsPage } from './pages/Protocols'
-import { AboutPage } from './pages/About'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { AboutPage } from '../../pages/About'
+import { GalleryPage } from '../../pages/Gallery'
+import { HomePage } from '../../pages/Home'
+import { LoginPage } from '../../pages/Login'
+import { NewsPage } from '../../pages/News'
+import { ProtocolsPage } from '../../pages/Protocols'
+import { RentalPage } from '../../pages/Rental'
+import { TracksSchemePage } from '../../pages/TracksScheme'
+import { TrainingPage } from '../../pages/Training'
+import { Layout } from '../../widgets/Layout'
 
-export const App = () => {
+export const AppRouter = () => {
   return (
     <Routes>
       <Route element={<Layout />}>

@@ -1,1 +1,1 @@
-export const routes = []
+export { AppRouter } from './AppRouter'
