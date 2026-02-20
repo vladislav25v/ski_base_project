@@ -4,10 +4,19 @@
   background: var(--color-surface);
   display: flex;
   flex-direction: row;
-  gap: 100px;
+  gap: 16px;
   align-items: center;
   justify-content: space-between;
   padding: 20px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+}
+
+.toggle {
+  margin-left: auto;
 }
 
 @media (max-width: 320px) {
@@ -17,6 +26,11 @@
     justify-content: flex-start;
     gap: 12px;
     padding: 12px 8px;
+  }
+
+  .toggle {
+    margin-left: 0;
+    align-self: flex-end;
   }
 }
 

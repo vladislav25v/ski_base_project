@@ -1,0 +1,1 @@
+export { AboutAccordion } from './AboutAccordion'

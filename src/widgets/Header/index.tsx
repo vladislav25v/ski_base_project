@@ -1,21 +1,19 @@
-﻿import { Button, Toggle } from '../../shared/ui'
+import { Button } from '../../shared/ui'
 import styles from './Header.module.scss'
 
 type HeaderProps = {
   menuOpen: boolean
   onMenuToggle: () => void
-  theme: 'light' | 'dark'
-  onThemeChange: (checked: boolean) => void
 }
 
-export const Header = ({ menuOpen, onMenuToggle, theme, onThemeChange }: HeaderProps) => {
+export const Header = ({ menuOpen, onMenuToggle }: HeaderProps) => {
   return (
     <header className={styles.header}>
       <div className={styles.logo}>
         <p className={styles.subtitle}>Тында</p>
         <h2 className={styles.brand}>ЛЫЖНАЯ БАЗА ДЮСШ №1</h2>
       </div>
-      <Toggle className={styles.toggle} checked={theme === 'dark'} onChange={onThemeChange} />
+      <img className={styles.logoMark} src="/logo.png" alt="Логотип лыжной базы" />
       <Button
         className={`${styles.burger} ${menuOpen ? styles.burgerOpen : ''}`}
         size="square"

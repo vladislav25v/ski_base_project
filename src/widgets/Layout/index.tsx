@@ -72,14 +72,17 @@ export const Layout = () => {
       <Header
         menuOpen={menuOpen}
         onMenuToggle={() => dispatch(toggleMenu())}
-        theme={theme}
-        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
       />
       <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>
         <Outlet />
       </main>
-      <Footer isAdmin={isAdmin} onLogout={handleLogout} />
+      <Footer
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
+        theme={theme}
+        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
+      />
     </div>
   )
 }
