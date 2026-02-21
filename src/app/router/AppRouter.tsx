@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from '../../widgets/Layout'
 
@@ -28,22 +28,20 @@ const LoginPage = lazy(() =>
 
 export const AppRouter = () => {
   return (
-    <Suspense fallback={<div>Загрузка страницы...</div>}>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="news" element={<NewsPage />} />
-          <Route path="training" element={<TrainingPage />} />
-          <Route path="calendar" element={<Navigate to="/training" replace />} />
-          <Route path="tracks-scheme" element={<TracksSchemePage />} />
-          <Route path="rental" element={<RentalPage />} />
-          <Route path="gallery" element={<GalleryPage />} />
-          <Route path="protocols" element={<ProtocolsPage />} />
-          <Route path="about" element={<AboutPage />} />
-          <Route path="login" element={<Navigate to="/admin" replace />} />
-          <Route path="admin" element={<LoginPage />} />
-        </Route>
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="news" element={<NewsPage />} />
+        <Route path="training" element={<TrainingPage />} />
+        <Route path="calendar" element={<Navigate to="/training" replace />} />
+        <Route path="tracks-scheme" element={<TracksSchemePage />} />
+        <Route path="rental" element={<RentalPage />} />
+        <Route path="gallery" element={<GalleryPage />} />
+        <Route path="protocols" element={<ProtocolsPage />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="login" element={<Navigate to="/admin" replace />} />
+        <Route path="admin" element={<LoginPage />} />
+      </Route>
+    </Routes>
   )
 }

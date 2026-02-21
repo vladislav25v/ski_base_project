@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useGetMeQuery, useLogoutMutation } from '../../app/store/apiSlice'
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks'
@@ -12,6 +12,7 @@ import {
   toggleMenu,
 } from '../../app/store/slices/uiSlice'
 import { applyRouteSeo } from '../../shared/lib'
+import { LoaderFallbackDots } from '../../shared/ui'
 import { Header } from '../Header'
 import { Menu } from '../Menu'
 import { Footer } from '../footer'
@@ -75,7 +76,9 @@ export const Layout = () => {
       />
       <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>
-        <Outlet />
+        <Suspense fallback={<LoaderFallbackDots />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer
         isAdmin={isAdmin}

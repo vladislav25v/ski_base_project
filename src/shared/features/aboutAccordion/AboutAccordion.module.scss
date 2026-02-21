@@ -60,24 +60,26 @@
 }
 
 .panelBodyWrap {
-  max-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 0fr);
   overflow: hidden;
-  transition: max-height 420ms ease;
+  transition: grid-template-rows 420ms ease;
+  will-change: grid-template-rows;
 }
 
 .panelBody {
-  min-height: 1px;
+  min-height: 0;
   border-top: 1px solid var(--color-border);
   padding: 12px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .panelClosed .panelBodyWrap {
-  max-height: 0;
+  grid-template-rows: minmax(0, 0fr);
 }
 
 .panelOpen .panelBodyWrap {
-  max-height: 5000px;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .panelOpen .panelMark {
