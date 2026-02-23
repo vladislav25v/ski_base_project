@@ -1,4 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { HistoryContent } from './components/HistoryContent'
+import { TeslenkoContent } from './components/TeslenkoContent'
+import { useScrollTopVisibility } from './hooks/useScrollTopVisibility'
+import { ScrollTopButton } from '../../ui'
 import styles from './AboutAccordion.module.scss'
 
 type AccordionSection = {
@@ -7,10 +11,13 @@ type AccordionSection = {
   forbidden?: string[]
 }
 
+const HISTORY_SECTION_INDEX = 3
+const TESLENKO_SECTION_INDEX = 4
+
 const SECTIONS: AccordionSection[] = [
-  { title: 'Тренеро-преподовательский состав' },
+  { title: 'Тренерско-преподавательский состав' },
   {
-    title: 'правила поведения на лыжной базе',
+    title: 'Правила поведения на лыжной базе',
     allowed: [
       'Получать удовольствие от катания на лыжах',
       'Улыбаться даже на подъёмах',
@@ -26,7 +33,7 @@ const SECTIONS: AccordionSection[] = [
       'Уважать трассу, инвентарь и друг друга',
     ],
     forbidden: [
-      'Приходить домашним животным без хозяев',
+      'Приходить с домашними животными без хозяев',
       'Дразнить, подкармливать или будить медведей',
       'Приходить со своим медведем, даже если он «очень воспитанный»',
       'Заниматься охотой',
@@ -39,18 +46,20 @@ const SECTIONS: AccordionSection[] = [
       'Ходить по лыжне без лыж',
       'Кататься со спусков на санках, тюбингах, тазиках и прочих аппаратах',
       'Выбрасывать мусор, даже если он «биоразлагаемый и почти незаметный»',
-      'Теряться в лесу. Если всё-таки заблудились — спокойно возвращайтесь домой',
+      'Теряться в лесу. Если всё-таки заблудились, спокойно возвращайтесь домой',
       'Пугать белок',
     ],
   },
   { title: 'Информация для поступающих на занятия' },
-  { title: 'история основания лыжной базы' },
-  { title: 'Тесленко Владимир власович' },
-  { title: 'выдающиеся выпускники' },
+  { title: 'История основания лыжной базы' },
+  { title: 'Тесленко Владимир Власович' },
+  { title: 'Выдающиеся выпускники' },
 ]
 
 export const AboutAccordion = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(0)
+  const firstSectionButtonRef = useRef<HTMLButtonElement | null>(null)
+  const showScrollTop = useScrollTopVisibility(firstSectionButtonRef)
 
   return (
     <section className={styles.section}>
@@ -65,6 +74,7 @@ export const AboutAccordion = () => {
               className={`${styles.panel} ${isOpen ? styles.panelOpen : styles.panelClosed}`}
             >
               <button
+                ref={index === 0 ? firstSectionButtonRef : null}
                 type="button"
                 className={styles.panelButton}
                 onClick={() => setActiveIndex((current) => (current === index ? null : index))}
@@ -75,7 +85,11 @@ export const AboutAccordion = () => {
               </button>
               <div className={styles.panelBodyWrap}>
                 <div className={styles.panelBody}>
-                  {section.allowed && section.forbidden ? (
+                  {index === HISTORY_SECTION_INDEX ? (
+                    <HistoryContent />
+                  ) : index === TESLENKO_SECTION_INDEX ? (
+                    <TeslenkoContent />
+                  ) : section.allowed && section.forbidden ? (
                     <div className={styles.rules}>
                       <h3 className={styles.rulesTitle}>Разрешено</h3>
                       <ul className={styles.rulesList}>
@@ -98,6 +112,8 @@ export const AboutAccordion = () => {
           )
         })}
       </div>
+      <ScrollTopButton isVisible={showScrollTop} />
     </section>
   )
 }
+

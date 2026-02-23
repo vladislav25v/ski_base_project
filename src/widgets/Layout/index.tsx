@@ -10,6 +10,7 @@ import {
   selectTheme,
   selectThemeMode,
   setTheme,
+  syncSystemTheme,
 } from '../../app/store/slices/uiSlice'
 import { applyRouteSeo } from '../../shared/lib'
 import { LoaderFallbackDots } from '../../shared/ui'
@@ -43,7 +44,31 @@ export const Layout = () => {
     document.documentElement.dataset.theme = theme
     document.documentElement.dataset.themeMode = themeMode
     localStorage.setItem('theme-mode', themeMode)
+    if (themeMode === 'system') {
+      localStorage.removeItem('theme-mode-locked')
+    } else {
+      localStorage.setItem('theme-mode-locked', '1')
+    }
   }, [theme, themeMode])
+
+  useEffect(() => {
+    if (themeMode !== 'system') {
+      return
+    }
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => dispatch(syncSystemTheme(media.matches ? 'dark' : 'light'))
+
+    apply()
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', apply)
+      return () => media.removeEventListener('change', apply)
+    }
+
+    media.addListener(apply)
+    return () => media.removeListener(apply)
+  }, [dispatch, themeMode])
 
   useEffect(() => {
     applyRouteSeo(location.pathname)
@@ -90,7 +115,7 @@ export const Layout = () => {
         isAdmin={isAdmin}
         onLogout={handleLogout}
         theme={theme}
-        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
+        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'system'))}
       />
     </div>
   )

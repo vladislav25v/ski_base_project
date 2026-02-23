@@ -2,7 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { RootState } from '../index'
 
 export type Theme = 'light' | 'dark'
-export type ThemeMode = Theme
+export type ThemeMode = Theme | 'system'
 
 type UiState = {
   menuOpen: boolean
@@ -18,23 +18,27 @@ const getSystemTheme = (): Theme => {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-const getInitialThemeMode = (): Theme => {
+const getInitialThemeMode = (): ThemeMode => {
   if (typeof window === 'undefined') {
-    return 'light'
+    return 'system'
   }
 
+  // Respect persisted mode only when it was explicitly chosen by user.
+  const isModeLocked = window.localStorage.getItem('theme-mode-locked') === '1'
   const storedMode = window.localStorage.getItem('theme-mode')
-  if (storedMode === 'dark' || storedMode === 'light') {
+  if (
+    isModeLocked &&
+    (storedMode === 'dark' || storedMode === 'light' || storedMode === 'system')
+  ) {
+    // Legacy migration: old "off" state in toggle persisted as explicit light.
+    // Treat it as system mode so OS preference can drive the theme.
+    if (storedMode === 'light') {
+      return 'system'
+    }
     return storedMode
   }
 
-  const storedLegacyTheme = window.localStorage.getItem('theme')
-  if (storedLegacyTheme === 'dark' || storedLegacyTheme === 'light') {
-    return storedLegacyTheme
-  }
-
-  // System preference is used only once for initial switch position.
-  return getSystemTheme()
+  return 'system'
 }
 
 const initialThemeMode = getInitialThemeMode()
@@ -42,7 +46,7 @@ const initialThemeMode = getInitialThemeMode()
 const initialState: UiState = {
   menuOpen: false,
   themeMode: initialThemeMode,
-  theme: initialThemeMode,
+  theme: initialThemeMode === 'system' ? getSystemTheme() : initialThemeMode,
 }
 
 const uiSlice = createSlice({
@@ -60,12 +64,17 @@ const uiSlice = createSlice({
     },
     setTheme: (state, action: PayloadAction<ThemeMode>) => {
       state.themeMode = action.payload
-      state.theme = action.payload
+      state.theme = action.payload === 'system' ? getSystemTheme() : action.payload
+    },
+    syncSystemTheme: (state, action: PayloadAction<Theme>) => {
+      if (state.themeMode === 'system') {
+        state.theme = action.payload
+      }
     },
   },
 })
 
-export const { openMenu, closeMenu, toggleMenu, setTheme } = uiSlice.actions
+export const { openMenu, closeMenu, toggleMenu, setTheme, syncSystemTheme } = uiSlice.actions
 export const uiReducer = uiSlice.reducer
 
 export const selectMenuOpen = (state: RootState) => state.ui.menuOpen
