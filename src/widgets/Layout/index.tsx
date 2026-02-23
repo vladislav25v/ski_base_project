@@ -5,11 +5,11 @@ import { useAppDispatch, useAppSelector } from '../../app/store/hooks'
 import { clearAuthUser, selectIsAdmin, setAuthUser } from '../../app/store/slices/authSlice'
 import {
   closeMenu,
+  openMenu,
   selectMenuOpen,
   selectTheme,
   selectThemeMode,
   setTheme,
-  toggleMenu,
 } from '../../app/store/slices/uiSlice'
 import { applyRouteSeo } from '../../shared/lib'
 import { LoaderFallbackDots } from '../../shared/ui'
@@ -63,6 +63,12 @@ export const Layout = () => {
     dispatch(closeMenu())
   }
 
+  const handleMenuOpen = () => {
+    if (!menuOpen) {
+      dispatch(openMenu())
+    }
+  }
+
   const handleLogout = () => {
     dispatch(clearAuthUser())
     void logout()
@@ -72,7 +78,7 @@ export const Layout = () => {
     <div className={styles.layout}>
       <Header
         menuOpen={menuOpen}
-        onMenuToggle={() => dispatch(toggleMenu())}
+        onMenuToggle={handleMenuOpen}
       />
       <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>

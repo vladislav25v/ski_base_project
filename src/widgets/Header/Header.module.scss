@@ -9,13 +9,24 @@
   padding-block: 16px;
   padding-inline-start: clamp(5px, 0.5vw, 10px);
   padding-inline-end: clamp(9px, 0.5vw, 10px);
-  background: var(--color-surface);
-  backdrop-filter: blur(6px);
+  background: transparent;
+  backdrop-filter: blur(5px);
   position: sticky;
   top: 0;
   z-index: 5;
   border-bottom: 1px solid var(--color-border);
   overflow-x: clip;
+  isolation: isolate;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface);
+  opacity: 0.6;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .logo {
@@ -38,10 +49,17 @@
 }
 
 .logoMark {
+  --logo-tone-filter: none;
   grid-column: 1 / 3;
   justify-self: center;
   width: 63px;
   object-fit: contain;
+  filter: var(--logo-tone-filter);
+}
+
+:global(html[data-theme='dark']) .logoMark,
+:global(body[data-theme='dark']) .logoMark {
+  --logo-tone-filter: hue-rotate(188deg) saturate(1.35) brightness(1.08) contrast(1.06);
 }
 
 .burger {

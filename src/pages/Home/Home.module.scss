@@ -28,6 +28,55 @@
   opacity: 0.8;
 }
 
+.logoGlow {
+  --glow-soft: color-mix(in srgb, var(--color-text) 24%, transparent);
+  --glow-ring: color-mix(in srgb, var(--color-text) 42%, transparent);
+  --glow-edge: color-mix(in srgb, var(--color-bg-accent) 78%, transparent);
+  width: fit-content;
+  margin: 0 auto;
+  margin-block: clamp(12px, 1vw + 4px, 25px);
+  border-radius: 50%;
+  @include mixins.backlight-glow(50%);
+}
+
+.logoMark {
+  --logo-tone-filter: none;
+  display: block;
+  width: clamp(250px, 50vw, 400px);
+  height: auto;
+  filter: var(--logo-tone-filter)
+    drop-shadow(0 6px 16px color-mix(in srgb, var(--color-text) 16%, transparent));
+}
+
+:global(html[data-theme='dark']) .logoMark,
+:global(body[data-theme='dark']) .logoMark {
+  --logo-tone-filter: hue-rotate(188deg) saturate(1.25) brightness(1.05) contrast(1.1);
+}
+
+.logoGlow::after {
+  inset: -10%;
+  border-radius: 50%;
+  box-shadow: none;
+  filter: blur(20px);
+  background: radial-gradient(
+    circle at center,
+    transparent 35%,
+    color-mix(in srgb, var(--color-text) 70%, transparent) 50%,
+    transparent 100%
+  );
+  animation: logoPulse 4.8s ease-in-out infinite reverse;
+}
+
+:global(html[data-theme='dark']) .logoGlow::after,
+:global(body[data-theme='dark']) .logoGlow::after {
+  background: radial-gradient(
+    circle at center,
+    transparent 35%,
+    color-mix(in srgb, var(--color-text) 34%, transparent) 70%,
+    transparent 88%
+  );
+}
+
 .hero {
   overflow: hidden;
   display: grid;
@@ -41,6 +90,7 @@
 .heroImageBottomFrame {
   width: 100%;
   display: block;
+  @include mixins.bordered-hover();
   transform: translateY(32px);
   opacity: 0;
   animation: rise 700ms ease-out forwards;
@@ -104,9 +154,14 @@
   height: 40vh;
   height: 40svh;
   border-radius: 20px;
+  border: 1px solid var(--color-border);
   display: grid;
   place-items: center;
   background: rgba(0, 0, 0, 0.05);
+  @include mixins.card-float(
+    0 12px 30px rgba(11, 27, 43, 0.16),
+    0 18px 36px rgba(11, 27, 43, 0.24)
+  );
 }
 
 .heroLoaderAnimation {
@@ -140,6 +195,16 @@
   width: 100%;
 }
 
+.mapInfo {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  @include mixins.card-float(0 12px 30px rgba(11, 27, 43, 0.12), 0 18px 36px rgba(11, 27, 43, 0.2));
+}
+
 .mapPlaceholder {
   width: 100%;
   height: min(440px, 60vh);
@@ -152,6 +217,7 @@
     rgba(255, 255, 255, 0.18) 45%,
     rgba(255, 255, 255, 0.08) 90%
   );
+  @include mixins.card-float(0 12px 30px rgba(11, 27, 43, 0.12), 0 18px 36px rgba(11, 27, 43, 0.2));
 }
 
 .mapTitle {
@@ -175,7 +241,24 @@
   }
 }
 
+@keyframes logoPulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.98;
+    transform: scale(1.08);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .logoGlow::after {
+    animation: none;
+  }
+
   .heroImageTop,
   .heroImageBottomFrame {
     animation: none;

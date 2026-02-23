@@ -214,7 +214,9 @@ export const HomePage = () => {
 
   return (
     <section className={styles.page}>
-      <h1>Добро пожаловать на лыжную базу города Тында!</h1>
+      <div className={styles.logoGlow}>
+        <img className={styles.logoMark} src="/logo.png" alt="Логотип лыжной базы" />
+      </div>
       <div className={`${styles.hero} ${styles.contentWidth}`}>
         <img className={styles.heroImageTop} src="/preview.jpg" alt="Снег и лыжи" />
         {isRandomLoading ? (
@@ -306,7 +308,7 @@ export const HomePage = () => {
         apiPath="/schedule"
         compact
       />
-      <div>
+      <div className={styles.mapInfo}>
         <h2 className={styles.mapTitle}>Как добраться</h2>
         <p className={styles.mapText}>На автобусе №3 до остановки "улица Автомобилистов"</p>
       </div>

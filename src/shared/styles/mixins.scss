@@ -1,1 +1,57 @@
+@mixin card-float(
+  $rest-shadow: 0 12px 30px rgba(0, 0, 0, 0.1),
+  $hover-shadow: 0 20px 38px rgba(0, 0, 0, 0.16),
+  $lift: -4px
+) {
+  // Legacy placeholder mixin. Keep empty to avoid implicit global-like effects.
+}
 
+@mixin bordered-hover(
+  $border: 1px solid var(--color-border),
+  $rest-shadow: (
+    0 0 0 1px color-mix(in srgb, var(--color-text) 24%, transparent),
+    0 10px 26px -18px color-mix(in srgb, var(--color-text) 55%, transparent)
+  ),
+  $hover-shadow: (
+    0 0 0 1px color-mix(in srgb, var(--color-text) 38%, transparent),
+    0 20px 40px -20px color-mix(in srgb, var(--color-text) 68%, transparent)
+  ),
+  $brightness: 1.06,
+  $lift: -4px,
+  $transition: 220ms
+) {
+  border: $border;
+  box-shadow: $rest-shadow;
+  transform: translateY(0);
+  transition:
+    box-shadow $transition ease,
+    filter $transition ease,
+    transform $transition ease;
+
+  &:is(:hover, :focus-visible, :focus-within) {
+    box-shadow: $hover-shadow;
+    filter: brightness($brightness);
+    transform: translateY($lift);
+  }
+}
+
+@mixin backlight-glow($radius: 28px) {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  &::after {
+    inset: -6%;
+    border-radius: $radius;
+    box-shadow:
+      0 0 0 1px var(--glow-edge, color-mix(in srgb, var(--color-bg-accent) 78%, transparent)),
+      0 0 20px 2px var(--glow-ring, color-mix(in srgb, var(--color-text) 36%, transparent));
+    opacity: 0.9;
+  }
+}
