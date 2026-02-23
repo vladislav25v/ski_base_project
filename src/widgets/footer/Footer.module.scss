@@ -33,12 +33,3 @@
     align-self: flex-end;
   }
 }
-
-.footerLoader {
-  position: block;
-  top: 12px;
-  right: 12px;
-  width: clamp(64px, 8vw, 96px);
-  height: clamp(64px, 8vw, 96px);
-  pointer-events: none;
-}

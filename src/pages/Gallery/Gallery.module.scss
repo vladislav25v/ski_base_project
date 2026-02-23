@@ -21,18 +21,6 @@
   gap: 10px;
 }
 
-.title {
-  margin: 0;
-  font-size: clamp(24px, 2.6vw + 12px, 30px);
-  letter-spacing: 0.02em;
-}
-
-.subtitle {
-  margin: 6px 0 0;
-  color: var(--color-text);
-  opacity: 0.7;
-}
-
 .pageError {
   margin: 0;
   color: #b5172d;

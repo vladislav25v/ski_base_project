@@ -10,24 +10,6 @@
   margin: 0 auto;
 }
 
-.intro {
-  display: grid;
-  gap: 10px;
-}
-
-.title {
-  margin: 0;
-  font-size: clamp(26px, 2vw + 16px, 34px);
-  letter-spacing: 0.02em;
-}
-
-.text {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.6;
-  opacity: 0.8;
-}
-
 .logoGlow {
   --glow-soft: color-mix(in srgb, var(--color-text) 24%, transparent);
   --glow-ring: color-mix(in srgb, var(--color-text) 42%, transparent);
