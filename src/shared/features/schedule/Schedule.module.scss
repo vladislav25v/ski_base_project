@@ -32,7 +32,7 @@
 
 .title {
   margin: 0;
-  font-size: clamp(22px, 1.6vw + 16px, 30px);
+  font-size: clamp(23px, 1.6vw + 17px, 31px);
 }
 
 .titleLink {
@@ -46,13 +46,13 @@
 
 .notice {
   margin: 6px 0 0;
-  font-size: 15px;
+  font-size: 16px;
   opacity: 0.8;
 }
 
 .phoneLink {
   color: inherit;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   border-bottom: 1px dashed currentColor;
 }
@@ -89,7 +89,7 @@
 }
 
 .sectionCompact .title {
-  font-size: clamp(18px, 1vw + 14px, 24px);
+  font-size: clamp(19px, 1vw + 15px, 25px);
 }
 
 .sectionCompact .timeLabel,
@@ -99,15 +99,15 @@
 }
 
 .dayLabel {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .timeLabel {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .dayOff {
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0.6;
 }
 
@@ -125,7 +125,7 @@
 
 .loaderText {
   margin: 0;
-  font-size: clamp(13px, 0.6vw + 11px, 15px);
+  font-size: clamp(14px, 0.6vw + 12px, 16px);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -139,7 +139,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text);
 }
 

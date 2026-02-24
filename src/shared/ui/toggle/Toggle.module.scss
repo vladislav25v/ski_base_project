@@ -7,7 +7,7 @@
   padding: 0;
   background: transparent;
   color: var(--color-text);
-  font-size: clamp(11px, 0.4vw + 10px, 12px);
+  font-size: clamp(12px, 0.4vw + 11px, 13px);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
@@ -37,13 +37,13 @@
 
 .labelText {
   line-height: 1.2;
-  font-size: clamp(9px, 1vw, 12px);
+  font-size: clamp(10px, 1vw, 13px);
   grid-row: 1;
   align-self: end;
 }
 
 .labelCaption {
-  font-size: clamp(9px, 0.3vw + 8px, 8px);
+  font-size: clamp(10px, 0.3vw + 9px, 9px);
   text-transform: lowercase;
   line-height: 1;
   grid-row: 3;

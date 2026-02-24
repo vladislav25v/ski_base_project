@@ -107,7 +107,13 @@ export const Layout = () => {
       />
       <Menu isOpen={menuOpen} onClose={handleMenuClose} intro={isHome} />
       <main className={styles.main}>
-        <Suspense fallback={<LoaderFallbackDots />}>
+        <Suspense
+          fallback={
+            <div className={styles.routeLoader} role="status" aria-live="polite">
+              <span>Загрузка</span> <LoaderFallbackDots />
+            </div>
+          }
+        >
           <Outlet />
         </Suspense>
       </main>
@@ -115,7 +121,7 @@ export const Layout = () => {
         isAdmin={isAdmin}
         onLogout={handleLogout}
         theme={theme}
-        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'system'))}
+        onThemeChange={(checked) => dispatch(setTheme(checked ? 'dark' : 'light'))}
       />
     </div>
   )

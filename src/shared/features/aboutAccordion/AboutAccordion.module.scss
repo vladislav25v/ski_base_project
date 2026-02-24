@@ -9,7 +9,7 @@
   margin: 0;
   width: 100%;
   padding: 10px 14px;
-  font-size: clamp(24px, 2vw + 14px, 34px);
+  font-size: clamp(25px, 2vw + 15px, 35px);
   border-radius: 16px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -53,7 +53,7 @@
 }
 
 .panelTitle {
-  font-size: clamp(14px, 0.6vw + 11px, 18px);
+  font-size: clamp(15px, 0.6vw + 12px, 19px);
   line-height: 1.2;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -103,7 +103,7 @@
 
 .rulesTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -142,7 +142,7 @@
 
 .historyCaption {
   margin: 0;
-  font-size: clamp(12px, 0.5vw + 10px, 14px);
+  font-size: clamp(13px, 0.5vw + 11px, 15px);
   line-height: 1.35;
   color: color-mix(in oklab, currentColor 72%, transparent);
 }

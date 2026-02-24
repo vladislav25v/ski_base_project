@@ -114,7 +114,9 @@ export const TracksMap = () => {
   const activeLineRef = useRef<YMapsPolyline | null>(null)
   const defaultRouteId = trackRoutes.find((route) => route.id === 'roller1200')?.id ?? trackRoutes[0].id
   const [selectedRouteId, setSelectedRouteId] = useState(defaultRouteId)
-  const [mapError, setMapError] = useState('')
+  const [mapError, setMapError] = useState(() =>
+    apiKey ? '' : 'Не указан VITE_YMAPS_API_KEY в env.',
+  )
   const [isMapReady, setIsMapReady] = useState(false)
 
   const selectedRoute = useMemo(
@@ -124,7 +126,6 @@ export const TracksMap = () => {
 
   useEffect(() => {
     if (!apiKey) {
-      setMapError('Не указан VITE_YMAPS_API_KEY в env.')
       return
     }
 
@@ -154,6 +155,9 @@ export const TracksMap = () => {
         setIsMapReady(true)
       })
       .catch((error) => {
+        if (disposed) {
+          return
+        }
         const message = error instanceof Error ? error.message : 'Ошибка загрузки карты.'
         setMapError(message)
       })
@@ -165,9 +169,8 @@ export const TracksMap = () => {
         mapInstanceRef.current = null
       }
       activeLineRef.current = null
-      setIsMapReady(false)
     }
-  }, [apiKey, theme])
+  }, [apiKey])
 
   useEffect(() => {
     const map = mapInstanceRef.current

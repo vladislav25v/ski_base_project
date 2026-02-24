@@ -11,6 +11,14 @@
   padding: 20px;
 }
 
+.routeLoader {
+  min-height: 220px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
 @media (max-width: 320px) {
   .main {
     padding: 12px 8px;

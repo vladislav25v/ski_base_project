@@ -6,7 +6,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   padding: clamp(8px, 0.6vw + 6px, 10px) clamp(12px, 1vw + 10px, 16px);
-  font-size: clamp(12px, 0.4vw + 11px, 14px);
+  font-size: clamp(13px, 0.4vw + 12px, 15px);
   font-family: inherit;
   color: inherit;
   background: transparent;
@@ -47,7 +47,7 @@
 
 @mixin button-compact {
   padding: clamp(5px, 0.4vw + 4px, 6px) clamp(10px, 0.8vw + 8px, 12px);
-  font-size: clamp(11px, 0.35vw + 10px, 13px);
+  font-size: clamp(12px, 0.35vw + 11px, 14px);
 }
 
 @mixin button-square {
@@ -60,14 +60,14 @@
 @mixin button-solid {
   background: #0b1b2b;
   border-color: transparent;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 @mixin button-danger {
   background: #f2d5d8;
   color: #7a0b1e;
   border-color: transparent;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 @mixin button-text {

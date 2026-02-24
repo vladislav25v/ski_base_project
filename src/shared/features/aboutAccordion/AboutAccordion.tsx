@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { HistoryContent } from './components/HistoryContent'
 import { TeslenkoContent } from './components/TeslenkoContent'
 import { useScrollTopVisibility } from './hooks/useScrollTopVisibility'
+import { Graduates } from '../graduates'
 import { ScrollTopButton } from '../../ui'
 import styles from './AboutAccordion.module.scss'
 
@@ -13,6 +14,8 @@ type AccordionSection = {
 
 const HISTORY_SECTION_INDEX = 3
 const TESLENKO_SECTION_INDEX = 4
+const ADMISSION_SECTION_INDEX = 2
+const GRADUATES_SECTION_INDEX = 5
 
 const SECTIONS: AccordionSection[] = [
   { title: 'Тренерско-преподавательский состав' },
@@ -85,10 +88,35 @@ export const AboutAccordion = () => {
               </button>
               <div className={styles.panelBodyWrap}>
                 <div className={styles.panelBody}>
-                  {index === HISTORY_SECTION_INDEX ? (
+                  {index === ADMISSION_SECTION_INDEX ? (
+                    <div className={styles.rules}>
+                      <h3 className={styles.rulesTitle}>
+                        Для зачисления ребёнка в секцию необходимо предоставить:
+                      </h3>
+                      <ol className={styles.rulesList}>
+                        <li>
+                          <strong>Медицинскую справку.</strong> Справка от педиатра с допуском
+                          к занятиям лыжным спортом (отсутствие противопоказаний к физическим
+                          нагрузкам).
+                        </li>
+                        <li>
+                          <strong>Заявление от родителей (законных представителей).</strong>{' '}
+                          Письменное заявление о зачислении ребёнка в спортивную секцию.
+                        </li>
+                      </ol>
+                      <p className={styles.historyParagraph}>
+                        Дополнительную информацию о расписании тренировок, требованиях к
+                        экипировке и организационных вопросах можно уточнить у администрации
+                        секции по телефону{' '}
+                        <a href="tel:+79145969023">+7 914 596-90-23</a>.
+                      </p>
+                    </div>
+                  ) : index === HISTORY_SECTION_INDEX ? (
                     <HistoryContent />
                   ) : index === TESLENKO_SECTION_INDEX ? (
                     <TeslenkoContent />
+                  ) : index === GRADUATES_SECTION_INDEX ? (
+                    <Graduates />
                   ) : section.allowed && section.forbidden ? (
                     <div className={styles.rules}>
                       <h3 className={styles.rulesTitle}>Разрешено</h3>

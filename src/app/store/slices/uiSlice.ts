@@ -30,11 +30,6 @@ const getInitialThemeMode = (): ThemeMode => {
     isModeLocked &&
     (storedMode === 'dark' || storedMode === 'light' || storedMode === 'system')
   ) {
-    // Legacy migration: old "off" state in toggle persisted as explicit light.
-    // Treat it as system mode so OS preference can drive the theme.
-    if (storedMode === 'light') {
-      return 'system'
-    }
     return storedMode
   }
 
