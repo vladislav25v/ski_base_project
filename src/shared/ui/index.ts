@@ -3,5 +3,5 @@ export type { ButtonProps, ButtonStyleProps, ButtonSize, ButtonVariant } from '.
 export { Toggle } from './toggle'
 export { FormModal, useModalClosing } from './modal'
 export { NewsForm, ScheduleForm } from './forms'
-export { LoaderFallbackDots } from './loader'
+export { LoaderFallbackDots, ThemeLoader } from './loader'
 export { ScrollTopButton } from './scrollTopButton'

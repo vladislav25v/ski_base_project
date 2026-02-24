@@ -15,6 +15,8 @@ import styles from './Home.module.scss'
 
 const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
 const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
+const INTRO_IMAGE_PATH = '/intro.jpg'
+const INTRO_FALLBACK_SEEN_KEY = 'home_intro_fallback_seen'
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('ru-RU', {
@@ -50,6 +52,7 @@ export const HomePage = () => {
   const [nextIndex, setNextIndex] = useState<number | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isMapInView, setIsMapInView] = useState(false)
+  const [showIntroFallback, setShowIntroFallback] = useState(false)
   const theme = useAppSelector(selectTheme)
   const randomLoaderRef = useRef<HTMLDivElement | null>(null)
   const transitionTimeoutRef = useRef<number | null>(null)
@@ -64,7 +67,7 @@ export const HomePage = () => {
   const { data: galleryData = [], isLoading: isGalleryLoading } = useGetGalleryQuery()
 
   const latestNews: NewsItem | null = latestNewsItems[0] ?? null
-  const isRandomLoading = isGalleryLoading
+  const isRandomLoading = isGalleryLoading && !showIntroFallback
 
   const galleryItems = useMemo(
     () =>
@@ -118,6 +121,18 @@ export const HomePage = () => {
     src.searchParams.set('theme', theme === 'dark' ? 'dark' : 'light')
     return src.toString()
   }, [theme])
+
+  useEffect(() => {
+    try {
+      const introWasShown = window.localStorage.getItem(INTRO_FALLBACK_SEEN_KEY) === '1'
+      if (!introWasShown) {
+        setShowIntroFallback(true)
+        window.localStorage.setItem(INTRO_FALLBACK_SEEN_KEY, '1')
+      }
+    } catch {
+      setShowIntroFallback(true)
+    }
+  }, [])
 
   const markImageLoaded = (url: string) => {
     setLoadedImageUrls((previous) => {
@@ -281,6 +296,12 @@ export const HomePage = () => {
                   />
                 </div>
               ) : null}
+            </div>
+          </Link>
+        ) : showIntroFallback ? (
+          <Link className={styles.heroLink} to="/gallery">
+            <div className={styles.heroImageBottomFrame}>
+              <img className={styles.heroImageBottom} src={INTRO_IMAGE_PATH} alt="Лыжная база" />
             </div>
           </Link>
         ) : null}

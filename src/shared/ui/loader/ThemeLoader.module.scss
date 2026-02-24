@@ -1,0 +1,21 @@
+.loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  height: 128px;
+  position: relative;
+}
+
+.animation {
+  width: 128px;
+  height: 128px;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
