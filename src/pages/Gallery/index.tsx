@@ -27,6 +27,7 @@ import {
   buildBlurDataUrl,
   shuffleItems,
 } from '../../shared/features/gallery/utils'
+import { GalleryViewerModal } from '../../shared/features/gallery/ui'
 import styles from './Gallery.module.scss'
 const GalleryUploadModal = lazy(() =>
   import('./GalleryUploadModal').then((module) => ({ default: module.GalleryUploadModal })),
@@ -153,6 +154,18 @@ export const GalleryPage = () => {
   }, [galleryData])
 
   const orderedItems = useMemo(() => items, [items])
+  const viewerItems = useMemo(
+    () =>
+      orderedItems.map((item) => ({
+        src: item.publicUrl,
+        alt: item.caption || 'Фотография',
+        caption: item.caption,
+        blurhash: item.blurhash,
+        width: item.width,
+        height: item.height,
+      })),
+    [orderedItems],
+  )
   const loadError = isError ? getRtkErrorMessage(galleryError, 'Ошибка загрузки галереи.') : ''
   const isGalleryPending =
     (!isSuccess && !isError) || (isFetching && galleryData.length === 0 && orderedItems.length === 0)
@@ -281,29 +294,6 @@ export const GalleryPage = () => {
       return (current - 1 + items.length) % items.length
     })
   }, [items.length])
-
-  useEffect(() => {
-    if (!isViewerOpen) {
-      return
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        requestCloseViewer()
-      }
-      if (event.key === 'ArrowRight') {
-        goNext()
-      }
-      if (event.key === 'ArrowLeft') {
-        goPrev()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isViewerOpen, requestCloseViewer, goNext, goPrev])
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.target
@@ -501,85 +491,24 @@ export const GalleryPage = () => {
         </Suspense>
       )}
 
-      {isViewerVisible && activeItem && (
-        <div
-          className={joinClassNames(
-            styles.viewerOverlay,
-            isViewerClosing ? styles.viewerOverlayClosing : styles.viewerOverlayOpen,
-          )}
-          onMouseDown={requestCloseViewer}
-        >
-          <div
-            className={joinClassNames(
-              styles.viewer,
-              isViewerClosing ? styles.viewerClosing : styles.viewerOpen,
-            )}
-            onMouseDown={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className={styles.viewerHeader}>
-              <span className={styles.viewerCount}>
-                {viewerIndex !== null ? `${viewerIndex + 1} / ${items.length}` : ''}
-              </span>
-              <button
-                type="button"
-                className={styles.viewerClose}
-                onClick={requestCloseViewer}
-                disabled={isDeleting}
-                aria-label="Закрыть"
-              >
-                {'X'}
-              </button>
-            </div>
-            <div className={styles.viewerBody}>
-              <div className={styles.viewerImageShell}>
-                <GalleryImage
-                  src={activeItem.publicUrl}
-                  alt={activeItem.caption || 'Фотография'}
-                  blurhash={activeItem.blurhash}
-                  loading="eager"
-                  wrapperClassName={styles.viewerImageWrapper}
-                  imageClassName={styles.viewerImage}
-                  wrapperStyle={{
-                    aspectRatio:
-                      activeItem.width && activeItem.height
-                        ? `${activeItem.width} / ${activeItem.height}`
-                        : undefined,
-                  }}
-                />
-                <button
-                  type="button"
-                  className={styles.viewerArrowLeft}
-                  onClick={goPrev}
-                  disabled={isDeleting || items.length <= 1}
-                  aria-label="Предыдущее фото"
-                >
-                  {'<'}
-                </button>
-                <button
-                  type="button"
-                  className={styles.viewerArrowRight}
-                  onClick={goNext}
-                  disabled={isDeleting || items.length <= 1}
-                  aria-label="Следующее фото"
-                >
-                  {'>'}
-                </button>
-              </div>
-              {activeItem.caption && <p className={styles.viewerCaption}>{activeItem.caption}</p>}
-            </div>
-            {viewerError && <p className={styles.viewerError}>{viewerError}</p>}
-            <div className={styles.viewerActions}>
-              {isAdmin && (
-                <Button onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? 'Удаление...' : 'Удалить'}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <GalleryViewerModal
+        isVisible={isViewerVisible}
+        isClosing={isViewerClosing}
+        isBusy={isDeleting}
+        items={viewerItems}
+        activeIndex={viewerIndex}
+        errorMessage={viewerError}
+        onRequestClose={requestCloseViewer}
+        onPrev={goPrev}
+        onNext={goNext}
+        actions={
+          isAdmin ? (
+            <Button onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Удаление...' : 'Удалить'}
+            </Button>
+          ) : null
+        }
+      />
     </section>
   )
 }

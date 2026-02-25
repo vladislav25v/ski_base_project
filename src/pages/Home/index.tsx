@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import lottie from 'lottie-web'
 import { Link } from 'react-router-dom'
 import { useGetGalleryQuery, useGetNewsQuery } from '../../app/store/apiSlice'
@@ -9,14 +9,53 @@ import type { NewsItem } from '../../shared/model'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import { ScheduleSection } from '../../shared/features/schedule'
 import { TrainingScheduleSection } from '../../shared/features/trainingSchedule'
-import { buildBlurDataUrl, shuffleItems } from '../../shared/features/gallery/utils'
-import { LoaderFallbackDots } from '../../shared/ui'
+import { shuffleItems } from '../../shared/features/gallery/utils'
 import styles from './Home.module.scss'
 
 const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
 const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
 const INTRO_IMAGE_PATH = '/intro.jpg'
-const INTRO_FALLBACK_SEEN_KEY = 'home_intro_fallback_seen'
+const INTRO_IMAGE_ALT = 'Лыжная база'
+const HERO_SWITCH_INTERVAL_MS = 10000
+const HERO_FADE_DURATION_MS = 1000
+const loadHomeHighlights = () => import('../../shared/features/homeHighlights')
+const HomeHighlights = lazy(() =>
+  loadHomeHighlights().then((module) => ({ default: module.HomeHighlights })),
+)
+
+type HeroImage = {
+  url: string
+  alt: string
+  galleryIndex: number | null
+}
+
+const HighlightsBlockLoader = ({ theme }: { theme: string }) => {
+  const loaderRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!loaderRef.current) {
+      return
+    }
+
+    const animation = lottie.loadAnimation({
+      container: loaderRef.current,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
+    })
+
+    return () => {
+      animation.destroy()
+    }
+  }, [theme])
+
+  return (
+    <div className={styles.highlightsPlaceholder} role="status" aria-live="polite">
+      <div className={styles.highlightsLoaderAnimation} ref={loaderRef} />
+    </div>
+  )
+}
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('ru-RU', {
@@ -47,16 +86,21 @@ const getRandomIndex = (length: number, exclude: number) => {
 }
 
 export const HomePage = () => {
-  const [loadedImageUrls, setLoadedImageUrls] = useState<Record<string, true>>({})
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [nextIndex, setNextIndex] = useState<number | null>(null)
+  const [currentHeroImage, setCurrentHeroImage] = useState<HeroImage>({
+    url: INTRO_IMAGE_PATH,
+    alt: INTRO_IMAGE_ALT,
+    galleryIndex: null,
+  })
+  const [nextHeroImage, setNextHeroImage] = useState<HeroImage | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isMapInView, setIsMapInView] = useState(false)
-  const [showIntroFallback, setShowIntroFallback] = useState(false)
+  const [isHighlightsInView, setIsHighlightsInView] = useState(false)
   const theme = useAppSelector(selectTheme)
-  const randomLoaderRef = useRef<HTMLDivElement | null>(null)
+  const currentGalleryIndexRef = useRef<number | null>(null)
+  const switchTimeoutRef = useRef<number | null>(null)
   const transitionTimeoutRef = useRef<number | null>(null)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const highlightsContainerRef = useRef<HTMLDivElement | null>(null)
 
   const {
     data: latestNewsItems = [],
@@ -64,10 +108,9 @@ export const HomePage = () => {
     isError: isNewsError,
     error: newsQueryError,
   } = useGetNewsQuery({ limit: 1 })
-  const { data: galleryData = [], isLoading: isGalleryLoading } = useGetGalleryQuery()
+  const { data: galleryData = [] } = useGetGalleryQuery()
 
   const latestNews: NewsItem | null = latestNewsItems[0] ?? null
-  const isRandomLoading = isGalleryLoading && !showIntroFallback
 
   const galleryItems = useMemo(
     () =>
@@ -77,7 +120,6 @@ export const HomePage = () => {
           .map((item) => ({
             url: item.publicUrl,
             alt: item.caption || 'Фотография из галереи',
-            blurhash: item.blurhash ?? null,
           })),
       ),
     [galleryData],
@@ -89,27 +131,6 @@ export const HomePage = () => {
     }
     return formatDate(latestNews.createdAt)
   }, [latestNews])
-
-  const safeCurrentIndex = galleryItems.length > 0 ? currentIndex % galleryItems.length : 0
-  const currentItem = galleryItems[safeCurrentIndex]
-  const nextItem =
-    nextIndex !== null && galleryItems.length > 0
-      ? galleryItems[nextIndex % galleryItems.length]
-      : null
-
-  const currentBlurDataUrl = useMemo(() => {
-    if (!currentItem || !currentItem.blurhash) {
-      return null
-    }
-    return buildBlurDataUrl(currentItem.blurhash)
-  }, [currentItem])
-
-  const nextBlurDataUrl = useMemo(() => {
-    if (!nextItem || !nextItem.blurhash) {
-      return null
-    }
-    return buildBlurDataUrl(nextItem.blurhash)
-  }, [nextItem])
 
   const mapWidgetSrc = useMemo(() => {
     const src = new URL('https://yandex.ru/map-widget/v1/')
@@ -123,78 +144,113 @@ export const HomePage = () => {
   }, [theme])
 
   useEffect(() => {
-    try {
-      const introWasShown = window.localStorage.getItem(INTRO_FALLBACK_SEEN_KEY) === '1'
-      if (!introWasShown) {
-        setShowIntroFallback(true)
-        window.localStorage.setItem(INTRO_FALLBACK_SEEN_KEY, '1')
-      }
-    } catch {
-      setShowIntroFallback(true)
-    }
-  }, [])
-
-  const markImageLoaded = (url: string) => {
-    setLoadedImageUrls((previous) => {
-      if (previous[url]) {
-        return previous
-      }
-      return { ...previous, [url]: true }
-    })
-  }
-
-  useEffect(() => {
-    if (galleryItems.length < 2) {
+    if (galleryItems.length === 0) {
       return
     }
 
-    const intervalId = window.setInterval(() => {
-      setCurrentIndex((index) => {
-        const safeIndex = index % galleryItems.length
-        const upcomingIndex = getRandomIndex(galleryItems.length, safeIndex)
-        setNextIndex(upcomingIndex)
-        setIsTransitioning(true)
+    let isCanceled = false
 
-        if (transitionTimeoutRef.current !== null) {
-          window.clearTimeout(transitionTimeoutRef.current)
-        }
-
-        transitionTimeoutRef.current = window.setTimeout(() => {
-          setCurrentIndex(upcomingIndex)
-          setIsTransitioning(false)
-          setNextIndex(null)
-        }, 1000)
-
-        return safeIndex
-      })
-    }, 10000)
-
-    return () => {
-      window.clearInterval(intervalId)
+    const clearTimers = () => {
+      if (switchTimeoutRef.current !== null) {
+        window.clearTimeout(switchTimeoutRef.current)
+        switchTimeoutRef.current = null
+      }
       if (transitionTimeoutRef.current !== null) {
         window.clearTimeout(transitionTimeoutRef.current)
         transitionTimeoutRef.current = null
       }
     }
-  }, [galleryItems])
 
-  useEffect(() => {
-    if (!isRandomLoading || !randomLoaderRef.current) {
-      return
+    const preloadImage = (src: string) =>
+      new Promise<void>((resolve, reject) => {
+        const image = new Image()
+        const clearHandlers = () => {
+          image.onload = null
+          image.onerror = null
+        }
+
+        image.onload = () => {
+          clearHandlers()
+          resolve()
+        }
+        image.onerror = () => {
+          clearHandlers()
+          reject(new Error('Failed to preload image'))
+        }
+        image.decoding = 'async'
+        image.src = src
+        if (image.complete) {
+          clearHandlers()
+          resolve()
+        }
+      })
+
+    const pickRandomGalleryIndex = () => {
+      const currentIndex = currentGalleryIndexRef.current
+      if (galleryItems.length <= 1) {
+        return 0
+      }
+      if (currentIndex === null) {
+        return Math.floor(Math.random() * galleryItems.length)
+      }
+      return getRandomIndex(galleryItems.length, currentIndex)
     }
 
-    const animation = lottie.loadAnimation({
-      container: randomLoaderRef.current,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      path: theme === 'dark' ? LOADER_ANIMATION_YELLOW_PATH : LOADER_ANIMATION_DEFAULT_PATH,
-    })
+    const scheduleNextSwitch = () => {
+      switchTimeoutRef.current = window.setTimeout(() => {
+        const nextIndex = pickRandomGalleryIndex()
+        const nextItem = galleryItems[nextIndex]
+        if (!nextItem) {
+          if (!isCanceled) {
+            scheduleNextSwitch()
+          }
+          return
+        }
+
+        void preloadImage(nextItem.url)
+          .then(() => {
+            if (isCanceled) {
+              return
+            }
+
+            setNextHeroImage({
+              url: nextItem.url,
+              alt: nextItem.alt,
+              galleryIndex: nextIndex,
+            })
+            setIsTransitioning(true)
+
+            transitionTimeoutRef.current = window.setTimeout(() => {
+              if (isCanceled) {
+                return
+              }
+
+              currentGalleryIndexRef.current = nextIndex
+              setCurrentHeroImage({
+                url: nextItem.url,
+                alt: nextItem.alt,
+                galleryIndex: nextIndex,
+              })
+              setNextHeroImage(null)
+              setIsTransitioning(false)
+              scheduleNextSwitch()
+            }, HERO_FADE_DURATION_MS)
+          })
+          .catch(() => {
+            if (!isCanceled) {
+              scheduleNextSwitch()
+            }
+          })
+      }, HERO_SWITCH_INTERVAL_MS)
+    }
+
+    scheduleNextSwitch()
 
     return () => {
-      animation.destroy()
+      isCanceled = true
+      clearTimers()
     }
-  }, [isRandomLoading, theme])
+  }, [galleryItems])
 
   useEffect(() => {
     if (isMapInView) {
@@ -222,6 +278,56 @@ export const HomePage = () => {
       observer.disconnect()
     }
   }, [isMapInView])
+  useEffect(() => {
+    if (isHighlightsInView) {
+      return
+    }
+    if (!highlightsContainerRef.current) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsHighlightsInView(true)
+          observer.disconnect()
+        }
+      },
+      {
+        rootMargin: '1400px 0px',
+      },
+    )
+
+    observer.observe(highlightsContainerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [isHighlightsInView])
+
+  useEffect(() => {
+    let timeoutId: number | null = null
+    let idleId: number | null = null
+
+    const preload = () => {
+      void loadHomeHighlights()
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(preload, { timeout: 1200 })
+    } else {
+      timeoutId = window.setTimeout(preload, 300)
+    }
+
+    return () => {
+      if (idleId !== null && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [])
 
   const newsError = isNewsError
     ? getRtkErrorMessage(newsQueryError, 'Не удалось загрузить новости.')
@@ -234,77 +340,30 @@ export const HomePage = () => {
       </div>
       <div className={`${styles.hero} ${styles.contentWidth}`}>
         <img className={styles.heroImageTop} src="/preview.jpg" alt="Снег и лыжи" />
-        {isRandomLoading ? (
-          <div className={styles.heroLoader} role="status" aria-live="polite">
-            <div className={styles.heroLoaderAnimation} ref={randomLoaderRef} />
-            <LoaderFallbackDots />
-          </div>
-        ) : galleryItems.length > 0 ? (
-          <Link className={styles.heroLink} to="/gallery">
-            <div className={styles.heroImageBottomFrame}>
-              <div
-                key={`current-${currentIndex}`}
-                className={`${styles.heroImageLayer} ${
-                  isTransitioning ? styles.heroImageLeaving : ''
-                }`}
-              >
-                {currentBlurDataUrl ? (
-                  <img
-                    className={`${styles.heroBlur} ${
-                      currentItem?.url && loadedImageUrls[currentItem.url]
-                        ? styles.heroBlurHidden
-                        : ''
-                    }`}
-                    src={currentBlurDataUrl}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                ) : null}
+        <Link className={styles.heroLink} to="/gallery">
+          <div className={styles.heroImageBottomFrame}>
+            <div className={`${styles.heroImageLayer} ${isTransitioning ? styles.heroImageLeaving : ''}`}>
+              <img
+                className={styles.heroImageBottom}
+                src={currentHeroImage.url}
+                alt={currentHeroImage.alt}
+                loading="eager"
+                decoding="async"
+              />
+            </div>
+            {isTransitioning && nextHeroImage ? (
+              <div className={`${styles.heroImageLayer} ${styles.heroImageEntering}`}>
                 <img
                   className={styles.heroImageBottom}
-                  src={currentItem?.url}
-                  alt={currentItem?.alt ?? 'Фотография из галереи'}
-                  onLoad={() => {
-                    if (currentItem?.url) {
-                      markImageLoaded(currentItem.url)
-                    }
-                  }}
+                  src={nextHeroImage.url}
+                  alt={nextHeroImage.alt}
+                  loading="eager"
+                  decoding="async"
                 />
               </div>
-              {isTransitioning && nextItem ? (
-                <div
-                  key={`next-${nextIndex}`}
-                  className={`${styles.heroImageLayer} ${styles.heroImageEntering}`}
-                >
-                  {nextBlurDataUrl ? (
-                    <img
-                      className={`${styles.heroBlur} ${
-                        loadedImageUrls[nextItem.url] ? styles.heroBlurHidden : ''
-                      }`}
-                      src={nextBlurDataUrl}
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                  <img
-                    className={styles.heroImageBottom}
-                    src={nextItem.url}
-                    alt={nextItem.alt ?? 'Фотография из галереи'}
-                    onLoad={() => {
-                      markImageLoaded(nextItem.url)
-                    }}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </Link>
-        ) : showIntroFallback ? (
-          <Link className={styles.heroLink} to="/gallery">
-            <div className={styles.heroImageBottomFrame}>
-              <img className={styles.heroImageBottom} src={INTRO_IMAGE_PATH} alt="Лыжная база" />
-            </div>
-          </Link>
-        ) : null}
+            ) : null}
+          </div>
+        </Link>
       </div>
       {isNewsLoading ? (
         <p className={styles.latestStatus}>{'Загрузка...'}</p>
@@ -329,21 +388,36 @@ export const HomePage = () => {
         apiPath="/schedule"
         compact
       />
-      <div className={styles.mapInfo}>
+      <div className={styles.mapInfoSection}>
         <h2 className={styles.mapTitle}>Как добраться</h2>
-        <p className={styles.mapText}>На автобусе №3 до остановки "улица Автомобилистов"</p>
+        <div className={styles.mapInfo}>
+          <p className={styles.mapText}>На автобусе №3 до остановки "улица Автомобилистов"</p>
+        </div>
       </div>
       <div className={styles.mapContainer} ref={mapContainerRef}>
         {isMapInView ? (
           <iframe
             className={styles.mapFrame}
             src={mapWidgetSrc}
-            loading="lazy"
+            loading="eager"
             allowFullScreen
             title="Лыжная база на карте"
           />
         ) : (
           <div className={styles.mapPlaceholder} aria-hidden="true" />
+        )}
+      </div>
+      <div className={styles.highlightsContainer} ref={highlightsContainerRef}>
+        {isHighlightsInView ? (
+          <Suspense
+            fallback={
+              <HighlightsBlockLoader theme={theme} />
+            }
+          >
+            <HomeHighlights cardsCount={1} />
+          </Suspense>
+        ) : (
+          <div className={styles.highlightsPlaceholder} aria-hidden="true" />
         )}
       </div>
     </section>

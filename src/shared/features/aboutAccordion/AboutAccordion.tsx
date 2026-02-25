@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { HistoryContent } from './components/HistoryContent'
 import { TeslenkoContent } from './components/TeslenkoContent'
 import { useScrollTopVisibility } from './hooks/useScrollTopVisibility'
@@ -16,6 +17,8 @@ const HISTORY_SECTION_INDEX = 3
 const TESLENKO_SECTION_INDEX = 4
 const ADMISSION_SECTION_INDEX = 2
 const GRADUATES_SECTION_INDEX = 5
+const SECTION_KEY_TESLENKO = 'teslenko'
+const SECTION_KEY_GRADUATES = 'graduates'
 
 const SECTIONS: AccordionSection[] = [
   { title: 'Тренерско-преподавательский состав' },
@@ -63,6 +66,39 @@ export const AboutAccordion = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(0)
   const firstSectionButtonRef = useRef<HTMLButtonElement | null>(null)
   const showScrollTop = useScrollTopVisibility(firstSectionButtonRef)
+  const location = useLocation()
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const personId = params.get('person')
+    const section = params.get('section')
+
+    if (!personId && !section) {
+      return
+    }
+
+    const targetSectionIndex =
+      section === SECTION_KEY_TESLENKO
+        ? TESLENKO_SECTION_INDEX
+        : section === SECTION_KEY_GRADUATES
+          ? GRADUATES_SECTION_INDEX
+          : personId === 'vladimir-teslenko'
+            ? TESLENKO_SECTION_INDEX
+            : GRADUATES_SECTION_INDEX
+
+    setActiveIndex(targetSectionIndex)
+
+    const timeoutId = window.setTimeout(() => {
+      const panelElement = document.getElementById(`about-panel-${targetSectionIndex}`)
+      const personElement = personId ? document.getElementById(personId) : null
+      const targetElement = personElement || panelElement
+      targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 460)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [location.search])
 
   return (
     <section className={styles.section}>
@@ -74,6 +110,7 @@ export const AboutAccordion = () => {
           return (
             <div
               key={section.title}
+              id={`about-panel-${index}`}
               className={`${styles.panel} ${isOpen ? styles.panelOpen : styles.panelClosed}`}
             >
               <button

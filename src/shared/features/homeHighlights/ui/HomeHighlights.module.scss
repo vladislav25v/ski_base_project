@@ -1,0 +1,24 @@
+@use '../../../styles/mixins.scss' as mixins;
+
+.section {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.titleFrame {
+  width: 100%;
+  padding: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(17px, 0.85vw + 14px, 22px);
+  text-wrap: balance;
+  @include mixins.inverted-title-badge();
+  max-width: 70%;
+}
+
+.cardsFrame {
+  width: 100%;
+}

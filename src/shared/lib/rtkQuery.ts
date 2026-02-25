@@ -11,6 +11,20 @@ const isFetchBaseQueryError = (error: unknown): error is FetchBaseQueryError =>
 const isSerializedError = (error: unknown): error is SerializedError =>
   typeof error === 'object' && error !== null && 'message' in error
 
+const mapNetworkErrorMessage = (message: string) => {
+  const normalized = message.trim().toLowerCase()
+
+  if (
+    normalized.includes('failed to fetch') ||
+    normalized.includes('networkerror') ||
+    normalized.includes('load failed')
+  ) {
+    return 'Ошибка загрузки с сервера'
+  }
+
+  return message
+}
+
 export const getRtkErrorMessage = (error: unknown, fallback = 'Ошибка запроса.') => {
   if (isFetchBaseQueryError(error)) {
     if (typeof error.status === 'number') {
@@ -18,12 +32,12 @@ export const getRtkErrorMessage = (error: unknown, fallback = 'Ошибка за
       return payload?.error ?? fallback
     }
     if ('error' in error && typeof error.error === 'string') {
-      return error.error
+      return mapNetworkErrorMessage(error.error)
     }
   }
 
   if (isSerializedError(error) && typeof error.message === 'string') {
-    return error.message
+    return mapNetworkErrorMessage(error.message)
   }
 
   return fallback

@@ -1,0 +1,185 @@
+.viewerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 13, 20, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.viewerOverlayOpen {
+  opacity: 1;
+}
+
+.viewerOverlayClosing {
+  opacity: 0;
+}
+
+.viewer {
+  width: min(980px, 96vw);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transform: translateY(16px);
+  transition: transform 200ms ease;
+  max-height: 92vh;
+}
+
+.viewerOpen {
+  transform: translateY(0);
+}
+
+.viewerClosing {
+  transform: translateY(12px);
+}
+
+.viewerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.viewerCount {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.viewerClose {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-accent);
+  color: inherit;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.viewerBody {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.viewerImageShell {
+  position: relative;
+  width: 100%;
+}
+
+.viewerImageWrapper {
+  width: 100%;
+  max-height: 72vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-bg-accent);
+  position: relative;
+}
+
+.viewerBlur {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: blur(16px);
+  transform: scale(1.05);
+  transition: opacity 240ms ease;
+}
+
+.viewerBlurHidden {
+  opacity: 0;
+}
+
+.viewerImage {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.viewerImageVisible {
+  opacity: 1;
+}
+
+.viewerCaption {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.viewerError {
+  margin: 0;
+  color: #b5172d;
+  font-size: 15px;
+}
+
+.viewerArrowLeft,
+.viewerArrowRight {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 70px;
+  border: none;
+  background: rgba(9, 13, 20, 0.45);
+  color: #ffffff;
+  border-radius: 12px;
+  cursor: pointer;
+  opacity: 0.35;
+  font-size: 33px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition:
+    opacity 160ms ease,
+    background 160ms ease;
+}
+
+.viewerArrowLeft {
+  left: 12px;
+}
+
+.viewerArrowRight {
+  right: 12px;
+}
+
+.viewerArrowLeft:hover,
+.viewerArrowRight:hover {
+  opacity: 0.9;
+  background: rgba(9, 13, 20, 0.7);
+}
+
+.viewerArrowLeft:disabled,
+.viewerArrowRight:disabled {
+  opacity: 0.15;
+  cursor: not-allowed;
+}
+
+.viewerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .viewer {
+    padding: 12px;
+  }
+}

@@ -2,7 +2,7 @@ import { TESLENKO_PROFILE_PARAGRAPHS } from '../model/teslenkoProfile'
 import styles from '../AboutAccordion.module.scss'
 
 export const TeslenkoContent = () => (
-  <div className={styles.history}>
+  <div id="vladimir-teslenko" className={styles.history}>
     <figure className={styles.historyFigure}>
       <img
         className={styles.historyImage}
