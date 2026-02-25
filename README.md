@@ -49,6 +49,5 @@ npm run dev
 #### фронт (в другом терминале)
 
 ```bash
-cd ..
 npm run dev
 ```

@@ -25,7 +25,7 @@ const mapNetworkErrorMessage = (message: string) => {
   return message
 }
 
-export const getRtkErrorMessage = (error: unknown, fallback = 'Ошибка запроса.') => {
+export const getRtkErrorMessage = (error: unknown, fallback = 'Ошибка запроса') => {
   if (isFetchBaseQueryError(error)) {
     if (typeof error.status === 'number') {
       const payload = error.data as ErrorPayload | undefined

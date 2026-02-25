@@ -156,8 +156,7 @@
 .announcementTitle {
   margin: 0;
   font-size: 19px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  @include mixins.inverted-title-badge();
 }
 
 .mapFrame {
