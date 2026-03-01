@@ -403,7 +403,7 @@ router.get('/security/stats', requireAdmin, async (req: AuthRequest, res) => {
   const hours = parsed.data.hours ?? 24
   const since = new Date(Date.now() - hours * 60 * 60 * 1000)
 
-  const [successCount, deniedCount, errorCount, deniedByReason, allowlistDeniedCount] =
+  const [successCount, deniedCount, errorCount, deniedReasonRows, allowlistDeniedCount] =
     await prisma.$transaction([
       prisma.authEvent.count({
         where: { action: 'oauth_yandex_callback', status: 'success', createdAt: { gte: since } },
@@ -414,10 +414,9 @@ router.get('/security/stats', requireAdmin, async (req: AuthRequest, res) => {
       prisma.authEvent.count({
         where: { action: 'oauth_yandex_callback', status: 'error', createdAt: { gte: since } },
       }),
-      prisma.authEvent.groupBy({
-        by: ['reason'],
+      prisma.authEvent.findMany({
         where: { action: 'oauth_yandex_callback', status: 'denied', createdAt: { gte: since } },
-        _count: { _all: true },
+        select: { reason: true },
       }),
       prisma.authEvent.count({
         where: {
@@ -429,6 +428,12 @@ router.get('/security/stats', requireAdmin, async (req: AuthRequest, res) => {
       }),
     ])
 
+  const deniedByReasonMap = new Map<string, number>()
+  for (const row of deniedReasonRows) {
+    const reason = row.reason ?? 'unknown'
+    deniedByReasonMap.set(reason, (deniedByReasonMap.get(reason) ?? 0) + 1)
+  }
+
   return res.json({
     window_hours: hours,
     since: since.toISOString(),
@@ -437,9 +442,9 @@ router.get('/security/stats', requireAdmin, async (req: AuthRequest, res) => {
       denied_count: deniedCount,
       error_count: errorCount,
       denied_allowlist_count: allowlistDeniedCount,
-      denied_by_reason: deniedByReason.map((item) => ({
-        reason: item.reason ?? 'unknown',
-        count: item._count._all,
+      denied_by_reason: Array.from(deniedByReasonMap.entries()).map(([reason, count]) => ({
+        reason,
+        count,
       })),
     },
   })
