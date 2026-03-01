@@ -40,7 +40,6 @@ export const env = {
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:3001',
   storageDir: process.env.STORAGE_DIR ?? './storage',
   adminEmail: process.env.ADMIN_EMAIL ?? 'admin@ski-base.local',
-  adminPassword: process.env.ADMIN_PASSWORD ?? 'change-me',
   s3Endpoint: process.env.S3_ENDPOINT ?? '',
   s3Region: process.env.S3_REGION ?? '',
   s3Bucket: process.env.S3_BUCKET ?? '',
@@ -49,4 +48,9 @@ export const env = {
   s3PublicBaseUrl: process.env.S3_PUBLIC_BASE_URL ?? '',
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
   cookieDomain: process.env.COOKIE_DOMAIN ?? '',
+  yandexClientId: process.env.YANDEX_CLIENT_ID ?? '',
+  yandexClientSecret: process.env.YANDEX_CLIENT_SECRET ?? '',
+  yandexRedirectUri: process.env.YANDEX_REDIRECT_URI ?? '',
+  authSuccessRedirectUrl: process.env.AUTH_SUCCESS_REDIRECT_URL ?? '',
+  authErrorRedirectUrl: process.env.AUTH_ERROR_REDIRECT_URL ?? '',
 }

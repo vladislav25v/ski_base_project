@@ -18,6 +18,38 @@ model User {
   @@map("users")
 }
 
+model AllowedEmail {
+  id              String    @id @default(uuid())
+  email           String
+  emailNormalized String    @unique @map("email_normalized")
+  isActive        Boolean   @default(true) @map("is_active")
+  comment         String?
+  createdByUserId String?   @map("created_by_user_id")
+  updatedByUserId String?   @map("updated_by_user_id")
+  lastUsedAt      DateTime? @map("last_used_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("allowed_emails")
+}
+
+model AuthEvent {
+  id              BigInt   @id @default(autoincrement())
+  action          String
+  status          String
+  reason          String?
+  emailNormalized String?  @map("email_normalized")
+  userId          String?  @map("user_id")
+  ip              String?
+  userAgent       String?  @map("user_agent")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt], map: "auth_events_created_at_idx")
+  @@index([action, status], map: "auth_events_action_status_idx")
+  @@index([emailNormalized], map: "auth_events_email_normalized_idx")
+  @@map("auth_events")
+}
+
 model News {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")

@@ -9,6 +9,8 @@ type NewsCardProps = {
   dateLabel?: string
   text?: string
   clickable?: boolean
+  linkTo?: string
+  rootId?: string
   isAdmin?: boolean
   isEditing?: boolean
   onEdit?: () => void
@@ -19,6 +21,8 @@ export const NewsCard = ({
   dateLabel,
   text,
   clickable = true,
+  linkTo,
+  rootId,
   isAdmin = false,
   isEditing = false,
   onEdit,
@@ -52,11 +56,17 @@ export const NewsCard = ({
   )
 
   if (!clickable) {
-    return <article className={styles.card}>{cardContent}</article>
+    return (
+      <article id={rootId} className={styles.card}>
+        {cardContent}
+      </article>
+    )
   }
 
+  const target = linkTo ?? `/news#news-${item.id}`
+
   return (
-    <Link className={styles.card} to="/news">
+    <Link id={rootId} className={styles.card} to={target}>
       {cardContent}
     </Link>
   )

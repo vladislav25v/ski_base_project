@@ -1,22 +1,35 @@
-﻿import { prisma } from '../src/db/prisma.js'
+import { prisma } from '../src/db/prisma.js'
 import { env } from '../src/config/env.js'
-import { hashPassword } from '../src/lib/password.js'
+import { normalizeEmail } from '../src/lib/auth/email.js'
+
+const BOOTSTRAP_ALLOWLIST_EMAILS = ['vlad-ski-96borsh@yandex.ru']
 
 const run = async () => {
-  const passwordHash = await hashPassword(env.adminPassword)
+  const emails = [env.adminEmail, ...BOOTSTRAP_ALLOWLIST_EMAILS]
+    .map((email) => email.trim())
+    .filter(Boolean)
 
-  await prisma.user.upsert({
-    where: { email: env.adminEmail },
-    update: {
-      passwordHash,
-      role: 'admin',
-    },
-    create: {
-      email: env.adminEmail,
-      passwordHash,
-      role: 'admin',
-    },
-  })
+  const uniqueByNormalized = new Map<string, string>()
+  for (const email of emails) {
+    uniqueByNormalized.set(normalizeEmail(email), email)
+  }
+
+  for (const [emailNormalized, email] of uniqueByNormalized) {
+    await prisma.allowedEmail.upsert({
+      where: { emailNormalized },
+      update: {
+        isActive: true,
+        email,
+        comment: 'bootstrap admin allowlist',
+      },
+      create: {
+        email,
+        emailNormalized,
+        isActive: true,
+        comment: 'bootstrap admin allowlist',
+      },
+    })
+  }
 }
 
 run()

@@ -62,10 +62,15 @@ NODE_ENV=development
 JWT_SECRET=dev-secret
 PUBLIC_BASE_URL=http://localhost:3001
 ADMIN_EMAIL=admin@local.dev
-ADMIN_PASSWORD=passwird
 
 CORS_ORIGIN=http://localhost:5173
 COOKIE_DOMAIN=
+AUTH_SUCCESS_REDIRECT_URL=http://localhost:5173/admin
+AUTH_ERROR_REDIRECT_URL=http://localhost:5173/admin
+
+YANDEX_CLIENT_ID=
+YANDEX_CLIENT_SECRET=
+YANDEX_REDIRECT_URI=http://localhost:3001/auth/yandex/callback
 
 S3_ENDPOINT=http://localhost:9000
 S3_REGION=us-east-1
@@ -77,9 +82,14 @@ S3_PUBLIC_BASE_URL=http://localhost:9000/dev-bucket
 
 ## Endpoints
 
-- `POST /auth/login`
+- `GET /auth/yandex/start`
+- `GET /auth/yandex/callback`
 - `POST /auth/logout`
 - `GET /auth/me`
+- `GET /auth/allowlist` (admin)
+- `POST /auth/allowlist` (admin)
+- `PATCH /auth/allowlist/:id` (admin)
+- `GET /auth/security/stats` (admin)
 - `GET /news`
 - `POST /news` (admin)
 - `DELETE /news/:id` (admin)

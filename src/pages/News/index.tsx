@@ -1,4 +1,5 @@
 ﻿import { Suspense, lazy, type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import lottie from 'lottie-web'
 import {
   useDeleteNewsMutation,
@@ -33,6 +34,7 @@ const formatDate = (value: string) =>
   })
 
 export const NewsPage = () => {
+  const location = useLocation()
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
@@ -152,6 +154,28 @@ export const NewsPage = () => {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!orderedNews.length || !location.hash) {
+      return
+    }
+
+    const targetId = location.hash.slice(1)
+    if (!targetId) {
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const element = document.getElementById(targetId)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [location.hash, orderedNews])
 
   const handleAddNews = () => {
     if (successCloseTimeoutRef.current !== null) {
@@ -305,6 +329,7 @@ export const NewsPage = () => {
             <NewsCard
               key={item.id}
               item={item}
+              rootId={`news-${item.id}`}
               dateLabel={formatDate(item.createdAt)}
               clickable={false}
               isAdmin={isAdmin}
@@ -363,5 +388,4 @@ export const NewsPage = () => {
     </section>
   )
 }
-
 

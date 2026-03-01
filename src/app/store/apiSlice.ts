@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { getMediaPublicUrl } from '../../shared/lib/apiClient'
 import type {
-  AuthCredentials,
   AuthUser,
   GalleryPicture,
   NewsItem,
@@ -36,14 +35,6 @@ export const apiSlice = createApi({
       query: () => '/auth/me',
       transformResponse: (response: { user: AuthUser }) => response.user,
       providesTags: ['Auth'],
-    }),
-    login: builder.mutation<{ user: AuthUser }, AuthCredentials>({
-      query: (body) => ({
-        url: '/auth/login',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['Auth'],
     }),
     logout: builder.mutation<{ success: boolean }, void>({
       query: () => ({
@@ -144,7 +135,6 @@ export const apiSlice = createApi({
 
 export const {
   useGetMeQuery,
-  useLoginMutation,
   useLogoutMutation,
   useGetNewsQuery,
   useUpsertNewsMutation,
