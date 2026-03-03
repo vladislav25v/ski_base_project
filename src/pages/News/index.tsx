@@ -14,6 +14,7 @@ import type { NewsItem } from '../../shared/model'
 import { Button, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
 import { NewsCard } from '../../shared/features/news/NewsCard'
 import styles from './News.module.scss'
+import { formatNewsDate } from './newsDate'
 const NewsAdminModal = lazy(() =>
   import('./NewsAdminModal').then((module) => ({ default: module.NewsAdminModal })),
 )
@@ -26,12 +27,13 @@ const sortByNewest = (items: NewsItem[]) =>
     (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   )
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
+const getPreviewText = (text: string) => {
+  const trimmed = text.trim()
+  if (trimmed.length <= 220) {
+    return trimmed
+  }
+  return `${trimmed.slice(0, 220)}...`
+}
 
 export const NewsPage = () => {
   const location = useLocation()
@@ -154,28 +156,6 @@ export const NewsPage = () => {
       }
     }
   }, [])
-
-  useEffect(() => {
-    if (!orderedNews.length || !location.hash) {
-      return
-    }
-
-    const targetId = location.hash.slice(1)
-    if (!targetId) {
-      return
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      const element = document.getElementById(targetId)
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-    })
-
-    return () => {
-      window.cancelAnimationFrame(frame)
-    }
-  }, [location.hash, orderedNews])
 
   const handleAddNews = () => {
     if (successCloseTimeoutRef.current !== null) {
@@ -330,8 +310,10 @@ export const NewsPage = () => {
               key={item.id}
               item={item}
               rootId={`news-${item.id}`}
-              dateLabel={formatDate(item.createdAt)}
-              clickable={false}
+              dateLabel={formatNewsDate(item.createdAt)}
+              text={getPreviewText(item.text)}
+              linkTo={`/news/${item.id}`}
+              linkState={{ backgroundLocation: location }}
               isAdmin={isAdmin}
               isEditing={isEditing}
               onEdit={() => startEdit(item)}

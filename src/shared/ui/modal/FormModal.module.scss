@@ -35,7 +35,7 @@
   display: grid;
   gap: 16px;
   max-height: 90vh;
-  overflow: auto;
+  overflow: hidden;
   opacity: 0;
   transform: translateY(12px) scale(0.98);
   transition:
@@ -88,4 +88,9 @@
 .modalBody {
   display: grid;
   gap: 12px;
+  max-height: min(72vh, calc(90vh - 96px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
 }

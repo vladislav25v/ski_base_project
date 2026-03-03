@@ -52,6 +52,15 @@ export const apiSlice = createApi({
       transformResponse: (response: { items: NewsItem[] }) => response.items ?? [],
       providesTags: ['News'],
     }),
+    getNewsById: builder.query<NewsItem, number>({
+      query: (id) => ({
+        url: `/news/${id}`,
+        params: { format: 'json' },
+        headers: { Accept: 'application/json' },
+      }),
+      transformResponse: (response: { item: NewsItem }) => response.item,
+      providesTags: (_result, _error, id) => [{ type: 'News', id }],
+    }),
     upsertNews: builder.mutation<NewsItem, FormData>({
       query: (body) => ({
         url: '/news',
@@ -137,6 +146,7 @@ export const {
   useGetMeQuery,
   useLogoutMutation,
   useGetNewsQuery,
+  useGetNewsByIdQuery,
   useUpsertNewsMutation,
   useDeleteNewsMutation,
   useGetGalleryQuery,

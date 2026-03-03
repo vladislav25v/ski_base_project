@@ -32,3 +32,4 @@ api/storage/
 *.njsproj
 *.sln
 *.sw?
+AGENTS.md

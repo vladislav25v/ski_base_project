@@ -1,3 +1,3 @@
 export const noop = () => {}
 export { apiClient, getMediaPublicUrl } from './apiClient'
-export { applyRouteSeo } from './seo'
+export { applyNewsSeo, applyRouteSeo } from './seo'

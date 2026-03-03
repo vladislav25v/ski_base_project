@@ -7,6 +7,7 @@ export type AuthUser = {
 export type NewsItem = {
   id: number
   createdAt: string
+  updatedAt?: string
   title: string
   text: string
   imageUrl?: string | null

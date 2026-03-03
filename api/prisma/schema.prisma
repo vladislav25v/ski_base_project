@@ -53,6 +53,7 @@ model AuthEvent {
 model News {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   title     String
   text      String
   imageUrl  String?  @map("image_url")

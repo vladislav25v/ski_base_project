@@ -38,6 +38,7 @@ export const env = {
   port: Number(process.env.PORT ?? 3001),
   jwtSecret: requireEnv('JWT_SECRET', 'change-me'),
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:3001',
+  siteUrl: process.env.SITE_URL ?? process.env.PUBLIC_BASE_URL ?? 'http://localhost:3001',
   storageDir: process.env.STORAGE_DIR ?? './storage',
   adminEmail: process.env.ADMIN_EMAIL ?? 'admin@ski-base.local',
   s3Endpoint: process.env.S3_ENDPOINT ?? '',

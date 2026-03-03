@@ -4,6 +4,13 @@ type RouteSeoMeta = {
   robots?: string
 }
 
+type NewsSeoMeta = {
+  id: number
+  title: string
+  text: string
+  imageUrl?: string | null
+}
+
 const DEFAULT_SITE_URL = 'https://tyndaski.ru'
 
 const getSiteUrl = () => {
@@ -17,6 +24,14 @@ const normalizePathname = (pathname: string) => {
     return '/'
   }
   return pathname.replace(/\/+$/, '')
+}
+
+const toAbsoluteUrl = (url: string, siteUrl: string) => {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`
+  return `${siteUrl}${normalizedPath}`
 }
 
 const ROUTE_META: Record<string, RouteSeoMeta> = {
@@ -82,9 +97,19 @@ const setCanonical = (href: string) => {
   canonical.setAttribute('href', href)
 }
 
+const resolveRouteMeta = (pathname: string) => {
+  if (ROUTE_META[pathname]) {
+    return ROUTE_META[pathname]
+  }
+  if (pathname.startsWith('/news/')) {
+    return ROUTE_META['/news']
+  }
+  return ROUTE_META['/']
+}
+
 export const applyRouteSeo = (pathname: string) => {
   const normalizedPath = normalizePathname(pathname)
-  const meta = ROUTE_META[normalizedPath] ?? ROUTE_META['/']
+  const meta = resolveRouteMeta(normalizedPath)
   const siteUrl = getSiteUrl()
   const canonicalUrl = normalizedPath === '/' ? siteUrl : `${siteUrl}${normalizedPath}`
 
@@ -113,6 +138,67 @@ export const applyRouteSeo = (pathname: string) => {
   setMetaTag("meta[property='og:url']", {
     property: 'og:url',
     content: canonicalUrl,
+  })
+
+  setCanonical(canonicalUrl)
+}
+
+const MAX_DESCRIPTION_LENGTH = 170
+
+const buildDescription = (text: string) => {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (clean.length <= MAX_DESCRIPTION_LENGTH) {
+    return clean
+  }
+  return `${clean.slice(0, MAX_DESCRIPTION_LENGTH)}...`
+}
+
+export const applyNewsSeo = ({ id, title, text, imageUrl }: NewsSeoMeta) => {
+  const siteUrl = getSiteUrl()
+  const canonicalUrl = `${siteUrl}/news/${id}`
+  const description = buildDescription(text)
+  const ogImage = imageUrl ? toAbsoluteUrl(imageUrl, siteUrl) : `${siteUrl}/preview.jpg`
+
+  document.title = `${title} | Лыжная база г. Тында`
+
+  setMetaTag("meta[name='description']", {
+    name: 'description',
+    content: description,
+  })
+
+  setMetaTag("meta[name='robots']", {
+    name: 'robots',
+    content: 'index, follow',
+  })
+
+  setMetaTag("meta[property='og:type']", {
+    property: 'og:type',
+    content: 'article',
+  })
+
+  setMetaTag("meta[property='og:title']", {
+    property: 'og:title',
+    content: title,
+  })
+
+  setMetaTag("meta[property='og:description']", {
+    property: 'og:description',
+    content: description,
+  })
+
+  setMetaTag("meta[property='og:url']", {
+    property: 'og:url',
+    content: canonicalUrl,
+  })
+
+  setMetaTag("meta[property='og:image']", {
+    property: 'og:image',
+    content: ogImage,
+  })
+
+  setMetaTag("meta[property='og:image:alt']", {
+    property: 'og:image:alt',
+    content: `Фото к новости: ${title}`,
   })
 
   setCanonical(canonicalUrl)

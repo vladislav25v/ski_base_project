@@ -61,6 +61,7 @@ NODE_ENV=development
 
 JWT_SECRET=dev-secret
 PUBLIC_BASE_URL=http://localhost:3001
+SITE_URL=http://localhost:5173
 ADMIN_EMAIL=admin@local.dev
 
 CORS_ORIGIN=http://localhost:5173
@@ -91,8 +92,11 @@ S3_PUBLIC_BASE_URL=http://localhost:9000/dev-bucket
 - `PATCH /auth/allowlist/:id` (admin)
 - `GET /auth/security/stats` (admin)
 - `GET /news`
+- `GET /news/:id` (HTML by default, JSON with `?format=json` or `Accept: application/json`)
 - `POST /news` (admin)
 - `DELETE /news/:id` (admin)
+- `GET /sitemap-news.xml`
+- `GET /rss.xml`
 - `GET /gallery`
 - `POST /gallery` (admin)
 - `DELETE /gallery/:id` (admin)

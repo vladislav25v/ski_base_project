@@ -7,6 +7,7 @@ import { newsRouter } from './routes/news.js'
 import { scheduleRouter } from './routes/schedule.js'
 import { trainingScheduleRouter } from './routes/trainingSchedule.js'
 import { galleryRouter } from './routes/gallery.js'
+import { seoRouter } from './routes/seo.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -40,6 +41,7 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true })
 })
 
+app.use(seoRouter)
 app.use('/auth', authRouter)
 app.use('/news', newsRouter)
 app.use('/schedule', scheduleRouter)
