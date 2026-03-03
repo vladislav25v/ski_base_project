@@ -23,14 +23,19 @@ const getInitialThemeMode = (): ThemeMode => {
     return 'system'
   }
 
-  // Respect persisted mode only when it was explicitly chosen by user.
   const isModeLocked = window.localStorage.getItem('theme-mode-locked') === '1'
   const storedMode = window.localStorage.getItem('theme-mode')
   if (
     isModeLocked &&
     (storedMode === 'dark' || storedMode === 'light' || storedMode === 'system')
   ) {
-    return storedMode
+    if (storedMode === 'system') {
+      return 'system'
+    }
+
+    // Unlock when persisted explicit mode already matches current system theme.
+    // This lets OS preference drive the UI again without overriding opposite manual choice.
+    return storedMode === getSystemTheme() ? 'system' : storedMode
   }
 
   return 'system'
@@ -58,8 +63,14 @@ const uiSlice = createSlice({
       state.menuOpen = !state.menuOpen
     },
     setTheme: (state, action: PayloadAction<ThemeMode>) => {
-      state.themeMode = action.payload
-      state.theme = action.payload === 'system' ? getSystemTheme() : action.payload
+      if (action.payload === 'system') {
+        state.themeMode = 'system'
+        state.theme = getSystemTheme()
+        return
+      }
+
+      state.theme = action.payload
+      state.themeMode = action.payload === getSystemTheme() ? 'system' : action.payload
     },
     syncSystemTheme: (state, action: PayloadAction<Theme>) => {
       if (state.themeMode === 'system') {

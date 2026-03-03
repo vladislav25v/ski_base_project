@@ -86,7 +86,9 @@ export const AboutAccordion = () => {
             ? TESLENKO_SECTION_INDEX
             : GRADUATES_SECTION_INDEX
 
-    setActiveIndex(targetSectionIndex)
+    const setSectionTimeoutId = window.setTimeout(() => {
+      setActiveIndex(targetSectionIndex)
+    }, 0)
 
     const timeoutId = window.setTimeout(() => {
       const panelElement = document.getElementById(`about-panel-${targetSectionIndex}`)
@@ -96,6 +98,7 @@ export const AboutAccordion = () => {
     }, 460)
 
     return () => {
+      window.clearTimeout(setSectionTimeoutId)
       window.clearTimeout(timeoutId)
     }
   }, [location.search])

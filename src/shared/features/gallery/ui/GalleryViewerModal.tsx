@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { buildBlurDataUrl } from '../utils'
 import styles from './GalleryViewerModal.module.scss'
 
@@ -39,17 +39,9 @@ export const GalleryViewerModal = ({
   onNext,
 }: GalleryViewerModalProps) => {
   const activeItem = activeIndex !== null ? items[activeIndex] : null
-  const [isImageLoaded, setIsImageLoaded] = useState(false)
-  const blurDataUrl = useMemo(() => {
-    if (!activeItem?.blurhash) {
-      return null
-    }
-    return buildBlurDataUrl(activeItem.blurhash)
-  }, [activeItem?.blurhash])
-
-  useEffect(() => {
-    setIsImageLoaded(false)
-  }, [activeItem?.src])
+  const [loadedImageSrc, setLoadedImageSrc] = useState('')
+  const blurDataUrl = activeItem?.blurhash ? buildBlurDataUrl(activeItem.blurhash) : null
+  const isImageLoaded = Boolean(activeItem?.src) && loadedImageSrc === activeItem.src
 
   useEffect(() => {
     if (!isVisible || !activeItem) {
@@ -127,7 +119,7 @@ export const GalleryViewerModal = ({
                 alt={activeItem.alt}
                 loading="eager"
                 decoding="async"
-                onLoad={() => setIsImageLoaded(true)}
+                onLoad={() => setLoadedImageSrc(activeItem.src)}
               />
             </div>
             <button
