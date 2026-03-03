@@ -2,6 +2,7 @@
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import { env } from './config/env.js'
+import { getIndexNowKeyFileRoute } from './lib/seo/indexNow.js'
 import { authRouter } from './routes/auth.js'
 import { newsRouter } from './routes/news.js'
 import { scheduleRouter } from './routes/schedule.js'
@@ -40,6 +41,14 @@ app.use(cookieParser())
 app.get('/health', (_req, res) => {
   res.json({ ok: true })
 })
+
+const indexNowKeyFileRoute = getIndexNowKeyFileRoute()
+if (indexNowKeyFileRoute) {
+  app.get(indexNowKeyFileRoute.path, (_req, res) => {
+    res.type('text/plain; charset=utf-8')
+    res.send(indexNowKeyFileRoute.value)
+  })
+}
 
 app.use(seoRouter)
 app.use('/auth', authRouter)

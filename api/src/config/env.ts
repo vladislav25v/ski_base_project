@@ -55,4 +55,6 @@ export const env = {
   yandexRedirectUri: process.env.YANDEX_REDIRECT_URI ?? '',
   authSuccessRedirectUrl: process.env.AUTH_SUCCESS_REDIRECT_URL ?? '',
   authErrorRedirectUrl: process.env.AUTH_ERROR_REDIRECT_URL ?? '',
+  indexNowKey: process.env.INDEXNOW_KEY ?? '',
+  indexNowEndpoint: process.env.INDEXNOW_ENDPOINT ?? 'https://api.indexnow.org/indexnow',
 }

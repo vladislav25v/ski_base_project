@@ -2,6 +2,7 @@
 import multer from 'multer'
 import { env } from '../config/env.js'
 import { prisma } from '../db/prisma.js'
+import { submitIndexNowNewsUrl } from '../lib/seo/indexNow.js'
 import { renderNewsHtml, renderNotFoundNewsHtml, resolveResponseFormat } from '../lib/seo/newsSsr.js'
 import { requireAdmin } from '../middleware/auth.js'
 import { buildPublicUrl, getStoragePathFromUrl, removeFileSafe, uploadImage } from '../storage/index.js'
@@ -43,6 +44,12 @@ const pingSitemap = () => {
         console.warn('Sitemap ping error', result.reason)
       }
     })
+  })
+}
+
+const notifyIndexNow = (newsId: number) => {
+  void submitIndexNowNewsUrl(newsId).catch((error) => {
+    console.warn('IndexNow ping error', error)
   })
 }
 
@@ -196,6 +203,7 @@ router.post('/', requireAdmin, upload.single('image'), async (req, res) => {
       : null
 
     pingSitemap()
+    notifyIndexNow(data.id)
 
     return res.json({
       item: {
@@ -237,6 +245,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
   await prisma.news.delete({ where: { id } })
   pingSitemap()
+  notifyIndexNow(id)
   return res.json({ success: true })
 })
 

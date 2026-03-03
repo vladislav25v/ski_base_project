@@ -62,6 +62,9 @@ NODE_ENV=development
 JWT_SECRET=dev-secret
 PUBLIC_BASE_URL=http://localhost:3001
 SITE_URL=http://localhost:5173
+FRONT_SITE_URL=http://localhost:5173
+INDEXNOW_KEY=
+INDEXNOW_ENDPOINT=https://api.indexnow.org/indexnow
 ADMIN_EMAIL=admin@local.dev
 
 CORS_ORIGIN=http://localhost:5173
@@ -97,6 +100,7 @@ S3_PUBLIC_BASE_URL=http://localhost:9000/dev-bucket
 - `DELETE /news/:id` (admin)
 - `GET /sitemap-news.xml`
 - `GET /rss.xml`
+- `GET /{INDEXNOW_KEY}.txt` (when `INDEXNOW_KEY` is configured)
 - `GET /gallery`
 - `POST /gallery` (admin)
 - `DELETE /gallery/:id` (admin)
