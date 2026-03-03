@@ -3,9 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from '../../widgets/Layout'
 
 const HomePage = lazy(() => import('../../pages/Home').then((module) => ({ default: module.HomePage })))
-const NewsRoutes = lazy(() =>
-  import('../../pages/News/NewsRoutes').then((module) => ({ default: module.NewsRoutes })),
-)
+const NewsPage = lazy(() => import('../../pages/News').then((module) => ({ default: module.NewsPage })))
 const TrainingPage = lazy(() =>
   import('../../pages/Training').then((module) => ({ default: module.TrainingPage })),
 )
@@ -33,7 +31,8 @@ export const AppRouter = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
-        <Route path="news/*" element={<NewsRoutes />} />
+        <Route path="news" element={<NewsPage />} />
+        <Route path="news/:id" element={<Navigate to="/news" replace />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="calendar" element={<Navigate to="/training" replace />} />
         <Route path="tracks-scheme" element={<TracksSchemePage />} />

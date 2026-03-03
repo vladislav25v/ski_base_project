@@ -1,5 +1,4 @@
 ﻿import { Suspense, lazy, type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import lottie from 'lottie-web'
 import {
   useDeleteNewsMutation,
@@ -9,18 +8,24 @@ import {
 import { useAppSelector } from '../../app/store/hooks'
 import { selectIsAdmin } from '../../app/store/slices/authSlice'
 import { selectTheme } from '../../app/store/slices/uiSlice'
+import { NewsDetailsContent } from './NewsDetailsContent'
 import { getRtkErrorMessage } from '../../shared/lib/rtkQuery'
 import type { NewsItem } from '../../shared/model'
-import { Button, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
+import { Button, FormModal, LoaderFallbackDots, useModalClosing } from '../../shared/ui'
 import { NewsCard } from '../../shared/features/news/NewsCard'
+import detailsStyles from './NewsDetails.module.scss'
 import styles from './News.module.scss'
 import { formatNewsDate } from './newsDate'
+
 const NewsAdminModal = lazy(() =>
   import('./NewsAdminModal').then((module) => ({ default: module.NewsAdminModal })),
 )
 
 const LOADER_ANIMATION_DEFAULT_PATH = '/loaders/default.json'
 const LOADER_ANIMATION_YELLOW_PATH = '/loaders/yellow.json'
+const NEWS_SHARE_BASE_URL =
+  (import.meta.env.VITE_NEWS_SHARE_URL as string | undefined)?.trim().replace(/\/+$/, '') ||
+  'https://news.tyndaski.ru'
 
 const sortByNewest = (items: NewsItem[]) =>
   [...items].sort(
@@ -35,8 +40,26 @@ const getPreviewText = (text: string) => {
   return `${trimmed.slice(0, 220)}...`
 }
 
+const buildShareUrl = (newsId: number) => `${NEWS_SHARE_BASE_URL}/news/${newsId}`
+
+const copyToClipboard = async (value: string) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = value
+  textarea.setAttribute('readonly', 'true')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  document.body.removeChild(textarea)
+}
+
 export const NewsPage = () => {
-  const location = useLocation()
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
@@ -49,11 +72,14 @@ export const NewsPage = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null)
+  const [copiedNewsId, setCopiedNewsId] = useState<number | null>(null)
   const isAdmin = useAppSelector(selectIsAdmin)
   const theme = useAppSelector(selectTheme)
   const loaderRef = useRef<HTMLDivElement | null>(null)
   const modalLoaderRef = useRef<HTMLDivElement | null>(null)
   const successCloseTimeoutRef = useRef<number | null>(null)
+  const shareMessageTimeoutRef = useRef<number | null>(null)
 
   const {
     data: newsData = [],
@@ -65,8 +91,8 @@ export const NewsPage = () => {
   const [deleteNews] = useDeleteNewsMutation()
 
   const orderedNews = useMemo(() => sortByNewest(newsData), [newsData])
-  const isModalOpen = isCreating || editingId !== null
-  const isModalBusy = isSaving || isUploading
+  const isAdminModalOpen = isCreating || editingId !== null
+  const isAdminModalBusy = isSaving || isUploading
   const closeDelayMs = 220
   const pageError = !isCreating && editingId === null
     ? formError || (isError ? getRtkErrorMessage(newsError, 'Ошибка загрузки данных') : '')
@@ -93,7 +119,7 @@ export const NewsPage = () => {
     setIsDeleting(false)
   }
 
-  const closeModalImmediate = () => {
+  const closeAdminModalImmediate = () => {
     if (isCreating) {
       closeCreateForm()
     } else {
@@ -102,14 +128,24 @@ export const NewsPage = () => {
   }
 
   const {
-    isVisible: isModalVisible,
-    isClosing: isModalClosing,
-    requestClose: requestCloseModal,
+    isVisible: isAdminModalVisible,
+    isClosing: isAdminModalClosing,
+    requestClose: requestCloseAdminModal,
   } = useModalClosing({
-    isOpen: isModalOpen,
-    isBusy: isModalBusy,
+    isOpen: isAdminModalOpen,
+    isBusy: isAdminModalBusy,
     closeDelayMs,
-    onClose: closeModalImmediate,
+    onClose: closeAdminModalImmediate,
+  })
+
+  const {
+    isVisible: isNewsModalVisible,
+    isClosing: isNewsModalClosing,
+    requestClose: requestCloseNewsModal,
+  } = useModalClosing({
+    isOpen: selectedNews !== null,
+    closeDelayMs,
+    onClose: () => setSelectedNews(null),
   })
 
   useEffect(() => {
@@ -131,7 +167,7 @@ export const NewsPage = () => {
   }, [isLoading, theme])
 
   useEffect(() => {
-    if (!isModalBusy || !modalLoaderRef.current) {
+    if (!isAdminModalBusy || !modalLoaderRef.current) {
       return
     }
 
@@ -146,7 +182,7 @@ export const NewsPage = () => {
     return () => {
       animation.destroy()
     }
-  }, [isModalBusy, theme])
+  }, [isAdminModalBusy, theme])
 
   useEffect(() => {
     return () => {
@@ -154,8 +190,27 @@ export const NewsPage = () => {
         window.clearTimeout(successCloseTimeoutRef.current)
         successCloseTimeoutRef.current = null
       }
+      if (shareMessageTimeoutRef.current !== null) {
+        window.clearTimeout(shareMessageTimeoutRef.current)
+        shareMessageTimeoutRef.current = null
+      }
     }
   }, [])
+
+  const handleShare = async (newsId: number) => {
+    try {
+      await copyToClipboard(buildShareUrl(newsId))
+      setCopiedNewsId(newsId)
+      if (shareMessageTimeoutRef.current !== null) {
+        window.clearTimeout(shareMessageTimeoutRef.current)
+      }
+      shareMessageTimeoutRef.current = window.setTimeout(() => {
+        setCopiedNewsId((current) => (current === newsId ? null : current))
+      }, 2200)
+    } catch {
+      setCopiedNewsId(null)
+    }
+  }
 
   const handleAddNews = () => {
     if (successCloseTimeoutRef.current !== null) {
@@ -244,7 +299,7 @@ export const NewsPage = () => {
         window.clearTimeout(successCloseTimeoutRef.current)
       }
       successCloseTimeoutRef.current = window.setTimeout(() => {
-        requestCloseModal()
+        requestCloseAdminModal()
       }, 1000)
     } catch (saveError) {
       setFormError(getRtkErrorMessage(saveError, 'Ошибка сохранения.'))
@@ -269,7 +324,7 @@ export const NewsPage = () => {
         window.clearTimeout(successCloseTimeoutRef.current)
       }
       successCloseTimeoutRef.current = window.setTimeout(() => {
-        requestCloseModal()
+        requestCloseAdminModal()
       }, 1000)
     } catch (deleteError) {
       setFormError(getRtkErrorMessage(deleteError, 'Ошибка удаления.'))
@@ -312,8 +367,10 @@ export const NewsPage = () => {
               rootId={`news-${item.id}`}
               dateLabel={formatNewsDate(item.createdAt)}
               text={getPreviewText(item.text)}
-              linkTo={`/news/${item.id}`}
-              linkState={{ backgroundLocation: location }}
+              clickable={false}
+              onOpen={() => setSelectedNews(item)}
+              onShare={() => void handleShare(item.id)}
+              shareLabel={copiedNewsId === item.id ? 'Скопировано' : 'Поделиться'}
               isAdmin={isAdmin}
               isEditing={isEditing}
               onEdit={() => startEdit(item)}
@@ -321,7 +378,19 @@ export const NewsPage = () => {
           )
         })}
       </div>
-      {isAdmin && isModalVisible && (
+      {isNewsModalVisible && selectedNews && (
+        <FormModal
+          title=""
+          hideTitle
+          bodyClassName={detailsStyles.modalBody}
+          isVisible={isNewsModalVisible}
+          isClosing={isNewsModalClosing}
+          onRequestClose={requestCloseNewsModal}
+        >
+          <NewsDetailsContent item={selectedNews} />
+        </FormModal>
+      )}
+      {isAdmin && isAdminModalVisible && (
         <Suspense
           fallback={
             <div className={styles.modalLoader} role="status" aria-live="polite">
@@ -333,9 +402,9 @@ export const NewsPage = () => {
         >
           <NewsAdminModal
             title={isCreating ? 'Новая новость' : 'Редактирование новости'}
-            isVisible={isModalVisible}
-            isClosing={isModalClosing}
-            isBusy={isModalBusy}
+            isVisible={isAdminModalVisible}
+            isClosing={isAdminModalClosing}
+            isBusy={isAdminModalBusy}
             isDeleting={isDeleting}
             successMessage={successMessage}
             formError={formError}
@@ -345,7 +414,7 @@ export const NewsPage = () => {
             isSaving={isSaving}
             isUploading={isUploading}
             modalLoaderRef={modalLoaderRef}
-            onRequestClose={requestCloseModal}
+            onRequestClose={requestCloseAdminModal}
             onTitleChange={(value) => {
               setDraftTitle(value)
               setFormError('')
@@ -370,4 +439,3 @@ export const NewsPage = () => {
     </section>
   )
 }
-

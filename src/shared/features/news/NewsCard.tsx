@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+﻿import type { MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../ui'
 import type { NewsItem } from '../../model'
@@ -12,6 +12,9 @@ type NewsCardProps = {
   linkTo?: string
   linkState?: unknown
   rootId?: string
+  onOpen?: () => void
+  onShare?: () => void
+  shareLabel?: string
   isAdmin?: boolean
   isEditing?: boolean
   onEdit?: () => void
@@ -25,16 +28,27 @@ export const NewsCard = ({
   linkTo,
   linkState,
   rootId,
+  onOpen,
+  onShare,
+  shareLabel = 'Поделиться',
   isAdmin = false,
   isEditing = false,
   onEdit,
 }: NewsCardProps) => {
   const showEdit = isAdmin && typeof onEdit === 'function'
-  const showHeader = Boolean(dateLabel) || showEdit
+  const showShare = typeof onShare === 'function'
+  const showHeader = Boolean(dateLabel) || showEdit || showShare
+
   const handleEditClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
     event.stopPropagation()
     onEdit?.()
+  }
+
+  const handleShareClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onShare?.()
   }
 
   const cardContent = (
@@ -42,10 +56,19 @@ export const NewsCard = ({
       {showHeader && (
         <div className={styles.cardHeader}>
           {dateLabel && <span className={styles.date}>{dateLabel}</span>}
-          {showEdit && (
-            <Button size="compact" onClick={handleEditClick} disabled={isEditing}>
-              {'Редактировать'}
-            </Button>
+          {(showShare || showEdit) && (
+            <div className={styles.actions}>
+              {showShare && (
+                <Button size="compact" variant="outline" onClick={handleShareClick}>
+                  {shareLabel}
+                </Button>
+              )}
+              {showEdit && (
+                <Button size="compact" onClick={handleEditClick} disabled={isEditing}>
+                  {'Редактировать'}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -59,13 +82,29 @@ export const NewsCard = ({
 
   if (!clickable) {
     return (
-      <article id={rootId} className={styles.card}>
+      <article
+        id={rootId}
+        className={styles.card}
+        role={onOpen ? 'button' : undefined}
+        tabIndex={onOpen ? 0 : undefined}
+        onClick={onOpen}
+        onKeyDown={(event) => {
+          if (!onOpen) {
+            return
+          }
+          if (event.key !== 'Enter' && event.key !== ' ') {
+            return
+          }
+          event.preventDefault()
+          onOpen()
+        }}
+      >
         {cardContent}
       </article>
     )
   }
 
-  const target = linkTo ?? `/news/${item.id}`
+  const target = linkTo ?? '/news'
 
   return (
     <Link id={rootId} className={styles.card} to={target} state={linkState}>

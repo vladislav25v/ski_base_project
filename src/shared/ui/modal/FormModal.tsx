@@ -4,19 +4,23 @@ import styles from './FormModal.module.scss'
 
 type FormModalProps = {
   title: string
+  hideTitle?: boolean
   isVisible: boolean
   isClosing: boolean
   isBusy?: boolean
   onRequestClose: () => void
+  bodyClassName?: string
   children: ReactNode
 }
 
 export const FormModal = ({
   title,
+  hideTitle = false,
   isVisible,
   isClosing,
   isBusy = false,
   onRequestClose,
+  bodyClassName,
   children,
 }: FormModalProps) => {
   const modalRef = useRef<HTMLDivElement | null>(null)
@@ -120,7 +124,7 @@ export const FormModal = ({
         aria-modal="true"
       >
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{title}</h2>
+          {!hideTitle && <h2 className={styles.modalTitle}>{title}</h2>}
           <button
             className={styles.modalClose}
             type="button"
@@ -131,7 +135,7 @@ export const FormModal = ({
             {'X'}
           </button>
         </div>
-        <div className={styles.modalBody}>{children}</div>
+        <div className={`${styles.modalBody} ${bodyClassName ?? ''}`.trim()}>{children}</div>
       </div>
     </div>,
     document.body,

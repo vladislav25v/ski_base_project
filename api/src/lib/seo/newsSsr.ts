@@ -1,4 +1,4 @@
-import { env } from '../../config/env.js'
+﻿import { env } from '../../config/env.js'
 
 type NewsSsrPayload = {
   id: number
@@ -9,6 +9,7 @@ type NewsSsrPayload = {
 }
 
 const SITE_URL = env.siteUrl.replace(/\/+$/, '')
+const FRONT_SITE_URL = env.frontSiteUrl.replace(/\/+$/, '')
 const FALLBACK_IMAGE_URL = `${SITE_URL}/preview.jpg`
 const MAX_DESCRIPTION_LENGTH = 170
 
@@ -48,6 +49,7 @@ const toBodyHtml = (text: string) => escapeHtml(text).replace(/\n/g, '<br />')
 
 export const renderNewsHtml = (payload: NewsSsrPayload) => {
   const canonicalUrl = `${SITE_URL}/news/${payload.id}`
+  const allNewsUrl = `${FRONT_SITE_URL}/news`
   const safeTitle = escapeHtml(payload.title.trim())
   const description = trimDescription(toPlainText(payload.text))
   const safeDescription = escapeHtml(description)
@@ -131,7 +133,7 @@ export const renderNewsHtml = (payload: NewsSsrPayload) => {
   </head>
   <body>
     <main>
-      <a class="back" href="/news">Назад к новостям</a>
+      <a class="back" href="${allNewsUrl}">Все новости</a>
       <article>
         <h1>${safeTitle}</h1>
         <time datetime="${payload.createdAt.toISOString()}">${safeDateLabel}</time>
@@ -144,6 +146,7 @@ export const renderNewsHtml = (payload: NewsSsrPayload) => {
 }
 
 export const renderNotFoundNewsHtml = () => {
+  const allNewsUrl = `${FRONT_SITE_URL}/news`
   return `<!doctype html>
 <html lang="ru">
   <head>
@@ -156,7 +159,7 @@ export const renderNotFoundNewsHtml = () => {
     <main>
       <h1>Новость не найдена</h1>
       <p>Проверьте ссылку или вернитесь к списку новостей.</p>
-      <a href="/news">Перейти к новостям</a>
+      <a href="${allNewsUrl}">Все новости</a>
     </main>
   </body>
 </html>`
