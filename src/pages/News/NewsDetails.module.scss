@@ -1,0 +1,71 @@
+.page {
+  display: grid;
+  gap: 20px;
+}
+
+.header {
+  display: grid;
+  gap: 12px;
+}
+
+.backLink {
+  width: fit-content;
+}
+
+.article {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: clamp(16px, 1.8vw, 24px);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(24px, 2.2vw, 34px);
+  line-height: 1.2;
+}
+
+.date {
+  width: fit-content;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.image {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  object-fit: cover;
+}
+
+.text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.status {
+  margin: 0;
+  font-size: 16px;
+}
+
+.error {
+  color: #b5172d;
+}
+
+.modalBody {
+  display: grid;
+  gap: 16px;
+}
+
+.modalBody .article {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
