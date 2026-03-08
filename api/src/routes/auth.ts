@@ -16,7 +16,7 @@ import {
   fetchYandexProfile,
   resolveProfileEmail,
 } from '../lib/oauth/yandex.js'
-import { requireAdmin, requireAuth, type AuthRequest } from '../middleware/auth.js'
+import { getAuthPayload, requireAdmin, type AuthRequest } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -455,16 +455,17 @@ router.post('/logout', (_req, res) => {
   return res.json({ success: true })
 })
 
-router.get('/me', requireAuth, (req: AuthRequest, res) => {
-  if (!req.auth) {
-    return res.status(401).json({ error: 'Unauthorized' })
+router.get('/me', (req: AuthRequest, res) => {
+  const auth = getAuthPayload(req)
+  if (!auth) {
+    return res.json({ user: null })
   }
 
   return res.json({
     user: {
-      id: req.auth.sub,
-      email: req.auth.email,
-      role: req.auth.role,
+      id: auth.sub,
+      email: auth.email,
+      role: auth.role,
     },
   })
 })

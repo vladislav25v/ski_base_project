@@ -63,3 +63,37 @@ export type GalleryPicture = {
   height?: number | null
   blurhash?: string | null
 }
+
+export type ProtocolStatus = 'DRAFT' | 'FORMED' | 'PUBLISHED'
+
+export type ProtocolParticipant = {
+  id?: string
+  number: number
+  sortOrder?: number
+  lastName: string
+  startTimeSec: number | null
+  finishTimeSec: number | null
+  netTimeSec: number | null
+  dsq: boolean
+  lapTimes: Array<number | null>
+}
+
+export type ProtocolItem = {
+  id: string
+  title: string
+  formationDate: string
+  startIntervalSeconds: number
+  sortByNetTime: boolean
+  chiefJudgeName: string | null
+  secretaryName: string | null
+  status: ProtocolStatus
+  localSourceId: string | null
+  formedAt: string | null
+  publishedAt: string | null
+  pdfStoragePath?: string | null
+  pdfFileName?: string | null
+  pdfPublicUrl?: string | null
+  createdAt: string
+  updatedAt: string
+  participants: ProtocolParticipant[]
+}

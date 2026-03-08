@@ -33,7 +33,7 @@ export const apiSlice = createApi({
   endpoints: (builder) => ({
     getMe: builder.query<AuthUser | null, void>({
       query: () => '/auth/me',
-      transformResponse: (response: { user: AuthUser }) => response.user,
+      transformResponse: (response: { user: AuthUser | null }) => response.user,
       providesTags: ['Auth'],
     }),
     logout: builder.mutation<{ success: boolean }, void>({

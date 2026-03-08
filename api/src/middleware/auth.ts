@@ -12,28 +12,41 @@ export type AuthRequest = Request & {
   auth?: AuthPayload
 }
 
-export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+const resolveToken = (req: Request) => {
   const header = req.headers.authorization
   const cookieToken =
     typeof req.cookies === 'object' && typeof req.cookies?.auth === 'string'
       ? req.cookies.auth
       : null
-  const token = header
+
+  return header
     ? header.startsWith('Bearer ')
       ? header.slice(7)
       : header
     : cookieToken
+}
 
+export const getAuthPayload = (req: Request): AuthPayload | null => {
+  const token = resolveToken(req)
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' })
+    return null
   }
+
   try {
-    const payload = jwt.verify(token, env.jwtSecret) as AuthPayload
-    req.auth = payload
-    return next()
+    return jwt.verify(token, env.jwtSecret) as AuthPayload
   } catch {
+    return null
+  }
+}
+
+export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const payload = getAuthPayload(req)
+  if (!payload) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
+
+  req.auth = payload
+  return next()
 }
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {

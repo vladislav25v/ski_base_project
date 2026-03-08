@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProtocolStatus {
+  DRAFT
+  FORMED
+  PUBLISHED
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -100,4 +106,57 @@ model TrainingScheduleSlot {
   day       TrainingSchedule @relation(fields: [dayId], references: [id], onDelete: Cascade)
 
   @@map("training_schedule_slots")
+}
+
+model Protocol {
+  id                   String                @id @default(uuid())
+  title                String
+  formationDate        DateTime              @map("formation_date")
+  startIntervalSeconds Int                   @default(30) @map("start_interval_seconds")
+  sortByNetTime        Boolean               @default(false) @map("sort_by_net_time")
+  chiefJudgeName       String?               @map("chief_judge_name")
+  secretaryName        String?               @map("secretary_name")
+  status               ProtocolStatus        @default(DRAFT)
+  formedAt             DateTime?             @map("formed_at")
+  publishedAt          DateTime?             @map("published_at")
+  pdfStoragePath       String?               @map("pdf_storage_path")
+  pdfFileName          String?               @map("pdf_file_name")
+  createdByUserId      String?               @map("created_by_user_id")
+  localSourceId        String?               @unique @map("local_source_id")
+  participants         ProtocolParticipant[]
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  @@index([status, formationDate], map: "protocols_status_formation_date_idx")
+  @@map("protocols")
+}
+
+model ProtocolParticipant {
+  id             String                   @id @default(uuid())
+  protocolId     String                   @map("protocol_id")
+  sortOrder      Int                      @default(0) @map("sort_order")
+  number         Int                      @default(1)
+  lastName       String                   @map("last_name")
+  startTimeSec   Int?                     @map("start_time_sec")
+  finishTimeSec  Int?                     @map("finish_time_sec")
+  netTimeSec     Int?                     @map("net_time_sec")
+  dsq            Boolean                  @default(false)
+  protocol       Protocol                 @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  lapTimes       ProtocolParticipantLap[]
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+
+  @@index([protocolId, sortOrder], map: "protocol_participants_protocol_order_idx")
+  @@map("protocol_participants")
+}
+
+model ProtocolParticipantLap {
+  id            String              @id @default(uuid())
+  participantId String              @map("participant_id")
+  lapIndex      Int                 @map("lap_index")
+  lapTimeSec    Int?                @map("lap_time_sec")
+  participant   ProtocolParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, lapIndex], map: "protocol_participant_laps_participant_lap_idx")
+  @@map("protocol_participant_laps")
 }

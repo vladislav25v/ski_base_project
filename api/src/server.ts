@@ -9,6 +9,7 @@ import { scheduleRouter } from './routes/schedule.js'
 import { trainingScheduleRouter } from './routes/trainingSchedule.js'
 import { galleryRouter } from './routes/gallery.js'
 import { seoRouter } from './routes/seo.js'
+import { protocolsRouter } from './routes/protocols.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -56,6 +57,7 @@ app.use('/news', newsRouter)
 app.use('/schedule', scheduleRouter)
 app.use('/training-schedule', trainingScheduleRouter)
 app.use('/gallery', galleryRouter)
+app.use('/protocols', protocolsRouter)
 
 app.use(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

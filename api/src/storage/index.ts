@@ -81,6 +81,32 @@ export const uploadImage = async (prefix: string, file: Express.Multer.File) => 
   }
 }
 
+export const uploadFileBuffer = async (options: {
+  prefix: string
+  fileName: string
+  contentType: string
+  buffer: Buffer
+}) => {
+  const client = s3Client()
+  const extension = path.extname(options.fileName) || '.bin'
+  const key = `${options.prefix}/${randomUUID()}${extension}`
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: env.s3Bucket,
+      Key: key,
+      Body: options.buffer,
+      ContentType: options.contentType,
+      ACL: 'public-read',
+    }),
+  )
+
+  return {
+    key,
+    publicUrl: buildPublicUrl(key),
+  }
+}
+
 export const removeFileSafe = async (key: string | null) => {
   if (!key) {
     return
