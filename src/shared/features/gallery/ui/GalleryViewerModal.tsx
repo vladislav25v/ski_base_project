@@ -70,7 +70,7 @@ export const GalleryViewerModal = ({
 
   const imageWrapperStyle: CSSProperties = {
     aspectRatio:
-      activeItem.width && activeItem.height ? `${activeItem.width} / ${activeItem.height}` : undefined,
+      currentItem.width && currentItem.height ? `${currentItem.width} / ${currentItem.height}` : undefined,
   }
   const isNavigationDisabled = isBusy || items.length <= 1
 
@@ -115,8 +115,8 @@ export const GalleryViewerModal = ({
               ) : null}
               <img
                 className={joinClassNames(styles.viewerImage, isImageLoaded && styles.viewerImageVisible)}
-                src={activeItem.src}
-                alt={activeItem.alt}
+                src={currentItem.src}
+                alt={currentItem.alt}
                 loading="eager"
                 decoding="async"
                 onLoad={() => setLoadedImageSrc(activeItem.src)}

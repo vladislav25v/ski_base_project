@@ -1,6 +1,6 @@
 export { Button, getButtonClassName } from './button'
 export type { ButtonProps, ButtonStyleProps, ButtonSize, ButtonVariant } from './button'
-export { Input } from './input'
+export { Input } from './input/index'
 export { Toggle } from './toggle'
 export { FormModal, useModalClosing } from './modal'
 export { NewsForm, ScheduleForm } from './forms'

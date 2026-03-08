@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useAppSelector } from '../../app/store/hooks'
 import { selectIsAdmin } from '../../app/store/slices/authSlice'
 import { apiClient } from '../../shared/lib/apiClient'
@@ -910,7 +910,7 @@ export const ProtocolsPage = () => {
               <Input
                 value={form.title}
                 className={fieldErrors.title ? styles.inputInvalid : undefined}
-                onChange={(event) => {
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   clearFieldError('title')
                   setForm((state) => ({ ...state, title: event.target.value }))
                 }}
@@ -922,7 +922,7 @@ export const ProtocolsPage = () => {
                 type="date"
                 value={form.formationDate}
                 className={fieldErrors.formationDate ? styles.inputInvalid : undefined}
-                onChange={(event) => {
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   clearFieldError('formationDate')
                   setForm((state) => ({ ...state, formationDate: event.target.value }))
                 }}
@@ -936,7 +936,7 @@ export const ProtocolsPage = () => {
                 max={600}
                 value={form.startIntervalSeconds}
                 className={fieldErrors.startIntervalSeconds ? styles.inputInvalid : undefined}
-                onChange={(event) => {
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   clearFieldError('startIntervalSeconds')
                   setForm((state) => ({
                     ...state,
@@ -950,7 +950,7 @@ export const ProtocolsPage = () => {
               <Input
                 value={form.chiefJudgeName}
                 className={fieldErrors.chiefJudgeName ? styles.inputInvalid : undefined}
-                onChange={(event) => {
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   clearFieldError('chiefJudgeName')
                   setForm((state) => ({ ...state, chiefJudgeName: event.target.value }))
                 }}
@@ -961,7 +961,7 @@ export const ProtocolsPage = () => {
               <Input
                 value={form.secretaryName}
                 className={fieldErrors.secretaryName ? styles.inputInvalid : undefined}
-                onChange={(event) => {
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   clearFieldError('secretaryName')
                   setForm((state) => ({ ...state, secretaryName: event.target.value }))
                 }}
@@ -1032,7 +1032,7 @@ export const ProtocolsPage = () => {
                         type="number"
                         min={1}
                         value={participant.number}
-                        onChange={(event) => {
+                        onChange={(event: ChangeEvent<HTMLInputElement>) => {
                           clearFieldError(`participant-${index}-number`)
                           updateParticipantNumber(index, event.target.value)
                         }}
@@ -1052,7 +1052,7 @@ export const ProtocolsPage = () => {
                             ? styles.inputInvalid
                             : undefined
                         }
-                        onChange={(event) => {
+                        onChange={(event: ChangeEvent<HTMLInputElement>) => {
                           clearFieldError(`participant-${index}-lastName`)
                           updateParticipant(index, { lastName: event.target.value })
                         }}
@@ -1062,7 +1062,7 @@ export const ProtocolsPage = () => {
                       <Input
                         placeholder="чч:мм:сс"
                         value={participant.startTime}
-                        onChange={(event) =>
+                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
                           handleTimeInputChange(index, event.target.value, 'startTime')
                         }
                         className={
@@ -1078,7 +1078,7 @@ export const ProtocolsPage = () => {
                         <Input
                           placeholder="чч:мм:сс"
                           value={participant.lapTimes[lapIndex] ?? ''}
-                          onChange={(event) =>
+                          onChange={(event: ChangeEvent<HTMLInputElement>) =>
                             handleTimeInputChange(index, event.target.value, 'lap', lapIndex)
                           }
                           className={
@@ -1093,7 +1093,7 @@ export const ProtocolsPage = () => {
                       <Input
                         placeholder="чч:мм:сс"
                         value={participant.finishTime}
-                        onChange={(event) =>
+                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
                           handleTimeInputChange(index, event.target.value, 'finishTime')
                         }
                         className={
@@ -1109,7 +1109,7 @@ export const ProtocolsPage = () => {
                       <Input
                         type="checkbox"
                         checked={participant.dsq}
-                        onChange={(event) =>
+                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
                           updateParticipant(index, { dsq: event.target.checked })
                         }
                       />
@@ -1182,7 +1182,7 @@ export const ProtocolsPage = () => {
                 <Input
                   value={uploadForm.title}
                   className={uploadFieldErrors.title ? styles.inputInvalid : undefined}
-                  onChange={(event) => {
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
                     clearUploadFieldError('title')
                     setUploadForm((state) => ({ ...state, title: event.target.value }))
                   }}
@@ -1194,7 +1194,7 @@ export const ProtocolsPage = () => {
                   type="date"
                   value={uploadForm.formationDate}
                   className={uploadFieldErrors.formationDate ? styles.inputInvalid : undefined}
-                  onChange={(event) => {
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
                     clearUploadFieldError('formationDate')
                     setUploadForm((state) => ({ ...state, formationDate: event.target.value }))
                   }}
@@ -1206,7 +1206,7 @@ export const ProtocolsPage = () => {
                   type="file"
                   accept=".doc,.docx,.xls,.xlsx"
                   className={uploadFieldErrors.file ? styles.inputInvalid : undefined}
-                  onChange={(event) => {
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
                     clearUploadFieldError('file')
                     const file = event.target.files?.[0] ?? null
                     setUploadForm((state) => ({ ...state, file }))
