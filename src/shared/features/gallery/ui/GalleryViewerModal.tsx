@@ -41,7 +41,7 @@ export const GalleryViewerModal = ({
   const activeItem = activeIndex !== null ? items[activeIndex] : null
   const [loadedImageSrc, setLoadedImageSrc] = useState('')
   const blurDataUrl = activeItem?.blurhash ? buildBlurDataUrl(activeItem.blurhash) : null
-  const isImageLoaded = Boolean(activeItem?.src) && loadedImageSrc === activeItem.src
+  const isImageLoaded = Boolean(activeItem?.src) && loadedImageSrc === (activeItem?.src ?? '')
 
   useEffect(() => {
     if (!isVisible || !activeItem) {
@@ -67,6 +67,8 @@ export const GalleryViewerModal = ({
   if (!isVisible || !activeItem) {
     return null
   }
+
+  const currentItem = activeItem
 
   const imageWrapperStyle: CSSProperties = {
     aspectRatio:
@@ -119,7 +121,7 @@ export const GalleryViewerModal = ({
                 alt={currentItem.alt}
                 loading="eager"
                 decoding="async"
-                onLoad={() => setLoadedImageSrc(activeItem.src)}
+                onLoad={() => setLoadedImageSrc(currentItem.src)}
               />
             </div>
             <button
@@ -141,7 +143,7 @@ export const GalleryViewerModal = ({
               {'>'}
             </button>
           </div>
-          {activeItem.caption ? <p className={styles.viewerCaption}>{activeItem.caption}</p> : null}
+          {currentItem.caption ? <p className={styles.viewerCaption}>{currentItem.caption}</p> : null}
         </div>
         {errorMessage ? <p className={styles.viewerError}>{errorMessage}</p> : null}
         {actions ? <div className={styles.viewerActions}>{actions}</div> : null}
