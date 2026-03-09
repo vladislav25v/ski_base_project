@@ -295,10 +295,28 @@ const buildContentDisposition = (fileName: string) => {
 
 const getPdfBrowser = async () => {
   if (!pdfBrowserPromise) {
-    pdfBrowserPromise = chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-dev-shm-usage'],
-    })
+    pdfBrowserPromise = chromium
+      .launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-zygote',
+          '--single-process',
+        ],
+      })
+      .then((browser) => {
+        browser.on('disconnected', () => {
+          pdfBrowserPromise = null
+        })
+        return browser
+      })
+      .catch((error) => {
+        pdfBrowserPromise = null
+        throw error
+      })
   }
   return pdfBrowserPromise
 }
