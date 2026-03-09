@@ -10,6 +10,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.repla
 const LOCAL_STORAGE_KEY = 'protocols.local.v2'
 const LOCAL_SCHEMA_VERSION = 3
 const MAX_PROTOCOL_FILE_SIZE = 10 * 1024 * 1024
+const MAX_LAPS = 7
 const NAME_PATTERN = /^[\p{L}\s'-]+$/u
 const ALLOWED_PROTOCOL_FILE_EXTENSIONS = ['doc', 'docx', 'xls', 'xlsx']
 
@@ -560,11 +561,12 @@ export const ProtocolsPage = () => {
   }
 
   const addLapColumn = () => {
+    if (laps >= MAX_LAPS) return
     setForm((state) => ({
       ...state,
       participants: state.participants.map((participant) => ({
         ...participant,
-        lapTimes: [...participant.lapTimes, ''],
+        lapTimes: [...participant.lapTimes, ''].slice(0, MAX_LAPS),
       })),
     }))
   }
@@ -994,7 +996,7 @@ export const ProtocolsPage = () => {
                 Сортировка по чистому времени
               </Button>
             </div>
-            <Button variant="outline" onClick={addLapColumn}>
+            <Button variant="outline" onClick={addLapColumn} disabled={laps >= MAX_LAPS}>
               Добавить круг
             </Button>
             <Button variant="outline" onClick={removeLapColumn} disabled={laps === 0}>

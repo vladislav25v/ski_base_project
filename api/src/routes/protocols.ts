@@ -1,9 +1,12 @@
-import { randomUUID } from 'crypto'
+﻿import { randomUUID } from 'crypto'
+import { existsSync, readFileSync } from 'fs'
 import { Router } from 'express'
 import multer from 'multer'
+import path from 'path'
 import rateLimit from 'express-rate-limit'
 import { ProtocolStatus, Prisma } from '@prisma/client'
-import { chromium, type Browser } from 'playwright'
+import fontkit from '@pdf-lib/fontkit'
+import { PDFDocument, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { z } from 'zod'
 import { prisma } from '../db/prisma.js'
 import { requireAdmin, type AuthRequest } from '../middleware/auth.js'
@@ -23,11 +26,34 @@ const ALLOWED_PROTOCOL_FILE_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ])
 
-let pdfBrowserPromise: Promise<Browser> | null = null
+const PDF_PAGE_WIDTH = 595.28
+const PDF_PAGE_HEIGHT = 841.89
+const PDF_MARGIN_TOP = 40
+const PDF_MARGIN_RIGHT = 28
+const PDF_MARGIN_BOTTOM = 72
+const PDF_MARGIN_LEFT = 28
+const PDF_HEADER_GAP = 14
+const PDF_TABLE_HEADER_HEIGHT = 24
+const PDF_CELL_PADDING_X = 4
+const PDF_CELL_PADDING_Y = 4
+const PDF_FONT_SIZE = 10
+const PDF_SMALL_FONT_SIZE = 9
+const PDF_TITLE_FONT_SIZE = 16
+const PDF_META_FONT_SIZE = 11
+const PDF_LINE_HEIGHT = 12
+const PDF_ROW_MIN_HEIGHT = 22
+const PDF_SIGNATURE_GAP = 26
+const PDF_SIGNATURE_LINE_WIDTH = 120
+const PDF_FONT_CANDIDATES = [
+  process.env.PDF_FONT_PATH,
+  'C:\\Windows\\Fonts\\arial.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+].filter((value): value is string => Boolean(value))
 
 const guestProtocolPdfLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Слишком много запросов на печать протоколов. Попробуйте позже.' },
@@ -35,7 +61,7 @@ const guestProtocolPdfLimiter = rateLimit({
 
 const adminProtocolPdfLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  max: 40,
+  max: 150,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Слишком много запросов на формирование PDF. Попробуйте позже.' },
@@ -275,14 +301,6 @@ const upsertParticipants = (participants: ReturnType<typeof normalizeProtocolPay
   })),
 })
 
-const escapeHtml = (value: string) =>
-  value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-
 const buildContentDisposition = (fileName: string) => {
   const asciiFallback =
     fileName
@@ -293,176 +311,341 @@ const buildContentDisposition = (fileName: string) => {
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
 }
 
-const getPdfBrowser = async () => {
-  if (!pdfBrowserPromise) {
-    pdfBrowserPromise = chromium
-      .launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-zygote',
-          '--single-process',
-        ],
-      })
-      .then((browser) => {
-        browser.on('disconnected', () => {
-          pdfBrowserPromise = null
-        })
-        return browser
-      })
-      .catch((error) => {
-        pdfBrowserPromise = null
-        throw error
-      })
+const resolvePdfFontPath = () => {
+  const matched = PDF_FONT_CANDIDATES.map((candidate) => path.resolve(candidate)).find((candidate) =>
+    existsSync(candidate),
+  )
+  if (!matched) {
+    throw new Error(
+      `PDF font not found. Set PDF_FONT_PATH or install one of: ${PDF_FONT_CANDIDATES.join(', ')}`
+    )
   }
-  return pdfBrowserPromise
+  return matched
 }
 
-const renderProtocolHtml = (record: ProtocolRecord) => {
-  const ordered = [...record.participants].sort((left, right) => left.sortOrder - right.sortOrder)
-  const maxLaps = ordered.reduce((acc, participant) => Math.max(acc, participant.lapTimes.length), 0)
-  const dateLabel = new Date(record.formationDate).toLocaleDateString('ru-RU')
-  const lapHeaders = Array.from({ length: maxLaps }, (_v, index) => `<th>Круг ${index + 1}</th>`).join('')
+const measureTextWidth = (font: PDFFont, value: string, fontSize: number) =>
+  value.length === 0 ? 0 : font.widthOfTextAtSize(value, fontSize)
 
-  const rows = ordered
-    .map((participant, index) => {
-      const laps = Array.from({ length: maxLaps }, (_v, lapIndex) => {
-        const lap = participant.lapTimes.find((item) => item.lapIndex === lapIndex)
-        return `<td>${escapeHtml(formatSec(lap?.lapTimeSec ?? null))}</td>`
-      }).join('')
-      const finish = participant.dsq ? 'DSQ' : formatSec(participant.finishTimeSec)
-      const net = participant.dsq ? 'DSQ' : formatSec(participant.netTimeSec)
-      return `
-        <tr>
-          <td>${participant.number > 0 ? participant.number : index + 1}</td>
-          <td class="left">${escapeHtml(participant.lastName)}</td>
-          <td>${escapeHtml(formatSec(participant.startTimeSec))}</td>
-          ${laps}
-          <td>${escapeHtml(finish)}</td>
-          <td>${escapeHtml(net)}</td>
-        </tr>
-      `
+const wrapPdfText = (font: PDFFont, value: string, fontSize: number, maxWidth: number) => {
+  if (!value) {
+    return ['']
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (!normalized) {
+    return ['']
+  }
+
+  const words = normalized.split(' ')
+  const lines: string[] = []
+  let current = ''
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word
+    if (measureTextWidth(font, candidate, fontSize) <= maxWidth) {
+      current = candidate
+      continue
+    }
+
+    if (current) {
+      lines.push(current)
+      current = ''
+    }
+
+    if (measureTextWidth(font, word, fontSize) <= maxWidth) {
+      current = word
+      continue
+    }
+
+    let fragment = ''
+    for (const char of Array.from(word)) {
+      const fragmentCandidate = `${fragment}${char}`
+      if (measureTextWidth(font, fragmentCandidate, fontSize) <= maxWidth) {
+        fragment = fragmentCandidate
+        continue
+      }
+      if (fragment) {
+        lines.push(fragment)
+      }
+      fragment = char
+    }
+    current = fragment
+  }
+
+  if (current) {
+    lines.push(current)
+  }
+
+  return lines.length > 0 ? lines : ['']
+}
+
+const trimToFit = (font: PDFFont, value: string, fontSize: number, maxWidth: number) => {
+  if (measureTextWidth(font, value, fontSize) <= maxWidth) {
+    return value
+  }
+
+  const ellipsis = '...'
+  let result = value
+  while (result.length > 1 && measureTextWidth(font, `${result}${ellipsis}`, fontSize) > maxWidth) {
+    result = result.slice(0, -1)
+  }
+  return `${result}${ellipsis}`
+}
+
+const drawPageFooter = (page: PDFPage, font: PDFFont, record: ProtocolRecord) => {
+  const baselineY = PDF_MARGIN_BOTTOM - 24
+  const halfWidth = (PDF_PAGE_WIDTH - PDF_MARGIN_LEFT - PDF_MARGIN_RIGHT - 24) / 2
+
+  const drawSignatureBlock = (x: number, label: string, name: string | null) => {
+    const textBaselineY = baselineY
+    page.drawText(label, {
+      x,
+      y: textBaselineY,
+      size: PDF_META_FONT_SIZE,
+      font,
+      color: rgb(0.07, 0.07, 0.07),
     })
-    .join('')
 
-  return `
-<!doctype html>
-<html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <style>
-      @page { size: A4; margin: 14mm 10mm 28mm 10mm; }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        color: #111;
-        font-family: "Arial", "DejaVu Sans", sans-serif;
-        font-size: 12px;
-      }
-      h1 {
-        margin: 0 0 6px;
-        font-size: 18px;
-        line-height: 1.25;
-      }
-      .meta {
-        margin-bottom: 10px;
-        font-size: 12px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        table-layout: fixed;
-      }
-      th, td {
-        border: 1px solid #111;
-        padding: 4px 6px;
-        text-align: center;
-        vertical-align: middle;
-        word-wrap: break-word;
-      }
-      th {
-        font-weight: 700;
-        background: #f5f5f5;
-      }
-      .left {
-        text-align: left;
-      }
-      tr {
-        break-inside: avoid;
-        page-break-inside: avoid;
-      }
-    </style>
-  </head>
-  <body>
-    <div>
-      <h1>${escapeHtml(record.title)}</h1>
-      <div class="meta">Дата формирования: ${escapeHtml(dateLabel)}</div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 8%">№</th>
-            <th style="width: 24%">Фамилия</th>
-            <th style="width: 12%">Старт</th>
-            ${lapHeaders}
-            <th style="width: 14%">Финиш</th>
-            <th style="width: 14%">Чистое время</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    </div>
-  </body>
-</html>
-  `
+    const labelWidth = measureTextWidth(font, label, PDF_META_FONT_SIZE)
+    const nameValue = trimToFit(font, name ?? '', PDF_META_FONT_SIZE, Math.min(halfWidth * 0.34, 90))
+    const nameX = x + labelWidth + 6
+    if (nameValue) {
+      page.drawText(nameValue, {
+        x: nameX,
+        y: textBaselineY,
+        size: PDF_META_FONT_SIZE,
+        font,
+        color: rgb(0.07, 0.07, 0.07),
+      })
+    }
+
+    const nameWidth = nameValue ? measureTextWidth(font, nameValue, PDF_META_FONT_SIZE) : 0
+    const lineX = nameX + nameWidth + 8
+    const lineWidth = Math.max(60, Math.min(PDF_SIGNATURE_LINE_WIDTH, x + halfWidth - lineX))
+    page.drawLine({
+      start: { x: lineX, y: textBaselineY - 1 },
+      end: { x: lineX + lineWidth, y: textBaselineY - 1 },
+      thickness: 1,
+      color: rgb(0.07, 0.07, 0.07),
+    })
+  }
+
+  drawSignatureBlock(PDF_MARGIN_LEFT, 'Главный судья:', record.chiefJudgeName)
+  drawSignatureBlock(PDF_MARGIN_LEFT + halfWidth + 24, 'Секретарь:', record.secretaryName)
 }
 
-const renderFooterTemplate = (record: ProtocolRecord) => {
-  const chief = escapeHtml(record.chiefJudgeName ?? '')
-  const secretary = escapeHtml(record.secretaryName ?? '')
-  return `
-  <div style="width:100%; padding:0 10mm 4mm; font-family:Arial,'DejaVu Sans',sans-serif; font-size:12px; color:#111;">
-    <div style="display:flex; gap:12mm; align-items:center;">
-      <div style="flex:1; display:flex; align-items:flex-end; gap:6px; min-width:0;">
-        <span style="white-space:nowrap;">Главный судья:</span>
-        <span style="max-width:42%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${chief}</span>
-        <span style="flex:1; border-bottom:1px solid #111; height:0; margin-bottom:1px;"></span>
-      </div>
-      <div style="flex:1; display:flex; align-items:flex-end; gap:6px; min-width:0;">
-        <span style="white-space:nowrap;">Секретарь:</span>
-        <span style="max-width:42%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${secretary}</span>
-        <span style="flex:1; border-bottom:1px solid #111; height:0; margin-bottom:1px;"></span>
-      </div>
-    </div>
-  </div>
-`
+const drawProtocolHeader = (
+  page: PDFPage,
+  regularFont: PDFFont,
+  boldFont: PDFFont,
+  record: ProtocolRecord,
+) => {
+  let cursorY = PDF_PAGE_HEIGHT - PDF_MARGIN_TOP
+  page.drawText(record.title, {
+    x: PDF_MARGIN_LEFT,
+    y: cursorY,
+    size: PDF_TITLE_FONT_SIZE,
+    font: boldFont,
+    color: rgb(0.07, 0.07, 0.07),
+  })
+  cursorY -= PDF_TITLE_FONT_SIZE + 8
+  page.drawText(`Дата формирования: ${new Date(record.formationDate).toLocaleDateString('ru-RU')}`, {
+    x: PDF_MARGIN_LEFT,
+    y: cursorY,
+    size: PDF_META_FONT_SIZE,
+    font: regularFont,
+    color: rgb(0.07, 0.07, 0.07),
+  })
+
+  return cursorY - PDF_HEADER_GAP
+}
+
+const buildColumnWidths = (maxLaps: number) => {
+  const availableWidth = PDF_PAGE_WIDTH - PDF_MARGIN_LEFT - PDF_MARGIN_RIGHT
+  const fixedWidth = 36 + 140 + 56 + 56 + 64
+  const lapWidth = maxLaps > 0 ? Math.max(40, (availableWidth - fixedWidth) / maxLaps) : 0
+
+  const widths = [36, 140, 56]
+  for (let index = 0; index < maxLaps; index += 1) {
+    widths.push(lapWidth)
+  }
+  widths.push(56, 64)
+
+  const total = widths.reduce((sum, width) => sum + width, 0)
+  const delta = availableWidth - total
+  widths[1] += delta
+  return widths
+}
+
+const drawTableHeader = (
+  page: PDFPage,
+  font: PDFFont,
+  startY: number,
+  columnWidths: number[],
+  maxLaps: number,
+) => {
+  const labels = ['№', 'Фамилия', 'Старт']
+  for (let index = 0; index < maxLaps; index += 1) {
+    labels.push(`Круг ${index + 1}`)
+  }
+  labels.push('Финиш', 'Чистое время')
+
+  let currentX = PDF_MARGIN_LEFT
+  const headerY = startY - PDF_TABLE_HEADER_HEIGHT
+  for (let index = 0; index < labels.length; index += 1) {
+    const width = columnWidths[index]
+    page.drawRectangle({
+      x: currentX,
+      y: headerY,
+      width,
+      height: PDF_TABLE_HEADER_HEIGHT,
+      borderWidth: 1,
+      borderColor: rgb(0.07, 0.07, 0.07),
+      color: rgb(0.96, 0.96, 0.96),
+    })
+    const label = labels[index]
+    const textWidth = measureTextWidth(font, label, PDF_SMALL_FONT_SIZE)
+    page.drawText(label, {
+      x: currentX + Math.max(PDF_CELL_PADDING_X, (width - textWidth) / 2),
+      y: headerY + 7,
+      size: PDF_SMALL_FONT_SIZE,
+      font,
+      color: rgb(0.07, 0.07, 0.07),
+    })
+    currentX += width
+  }
+
+  return headerY
+}
+
+const drawParticipantRow = (
+  page: PDFPage,
+  regularFont: PDFFont,
+  participant: ProtocolRecord['participants'][number],
+  topY: number,
+  columnWidths: number[],
+  maxLaps: number,
+) => {
+  const rowValues = [
+    String(participant.number),
+    participant.lastName,
+    formatSec(participant.startTimeSec),
+  ]
+
+  for (let lapIndex = 0; lapIndex < maxLaps; lapIndex += 1) {
+    const lap = participant.lapTimes.find((item) => item.lapIndex === lapIndex)
+    rowValues.push(formatSec(lap?.lapTimeSec ?? null))
+  }
+
+  rowValues.push(
+    participant.dsq ? 'DSQ' : formatSec(participant.finishTimeSec),
+    participant.dsq ? 'DSQ' : formatSec(participant.netTimeSec),
+  )
+
+  const linesPerCell = rowValues.map((value, index) => {
+    if (index === 1) {
+      return wrapPdfText(
+        regularFont,
+        value,
+        PDF_FONT_SIZE,
+        columnWidths[index] - PDF_CELL_PADDING_X * 2,
+      )
+    }
+    return [value]
+  })
+
+  const rowHeight = Math.max(
+    PDF_ROW_MIN_HEIGHT,
+    ...linesPerCell.map((lines) => lines.length * PDF_LINE_HEIGHT + PDF_CELL_PADDING_Y * 2),
+  )
+  const rowBottomY = topY - rowHeight
+
+  let currentX = PDF_MARGIN_LEFT
+  for (let index = 0; index < rowValues.length; index += 1) {
+    const width = columnWidths[index]
+    page.drawRectangle({
+      x: currentX,
+      y: rowBottomY,
+      width,
+      height: rowHeight,
+      borderWidth: 1,
+      borderColor: rgb(0.07, 0.07, 0.07),
+    })
+
+    const lines = linesPerCell[index]
+    const isLeftAligned = index === 1
+    let textY = topY - PDF_CELL_PADDING_Y - PDF_FONT_SIZE
+    for (const line of lines) {
+      const fittedLine = trimToFit(
+        regularFont,
+        line,
+        PDF_FONT_SIZE,
+        width - PDF_CELL_PADDING_X * 2,
+      )
+      const textWidth = measureTextWidth(regularFont, fittedLine, PDF_FONT_SIZE)
+      const textX = isLeftAligned
+        ? currentX + PDF_CELL_PADDING_X
+        : currentX + Math.max(PDF_CELL_PADDING_X, (width - textWidth) / 2)
+
+      page.drawText(fittedLine, {
+        x: textX,
+        y: textY,
+        size: PDF_FONT_SIZE,
+        font: regularFont,
+        color: rgb(0.07, 0.07, 0.07),
+      })
+      textY -= PDF_LINE_HEIGHT
+    }
+    currentX += width
+  }
+
+  return rowBottomY
 }
 
 const drawPdf = async (record: ProtocolRecord) => {
-  const browser = await getPdfBrowser()
-  const page = await browser.newPage()
-  try {
-    const html = renderProtocolHtml(record)
-    const footerTemplate = renderFooterTemplate(record)
-    await page.setContent(html, { waitUntil: 'load' })
-    const result = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
-      footerTemplate,
-      margin: { top: '14mm', right: '10mm', bottom: '24mm', left: '10mm' },
-    })
-    return Buffer.from(result)
-  } finally {
-    await page.close()
+  const pdfDocument = await PDFDocument.create()
+  pdfDocument.registerFontkit(fontkit)
+  const fontPath = resolvePdfFontPath()
+  const fontBytes = readFileSync(fontPath)
+  const regularFont = await pdfDocument.embedFont(fontBytes, { subset: true })
+  const boldFont = regularFont
+
+  const ordered = [...record.participants].sort((left, right) => left.sortOrder - right.sortOrder)
+  const maxLaps = ordered.reduce((acc, participant) => Math.max(acc, participant.lapTimes.length), 0)
+  const columnWidths = buildColumnWidths(maxLaps)
+  const contentBottomY = PDF_MARGIN_BOTTOM + PDF_SIGNATURE_GAP
+
+  let page = pdfDocument.addPage([PDF_PAGE_WIDTH, PDF_PAGE_HEIGHT])
+  drawPageFooter(page, regularFont, record)
+  let cursorY = drawProtocolHeader(page, regularFont, boldFont, record)
+  cursorY = drawTableHeader(page, boldFont, cursorY, columnWidths, maxLaps)
+
+  for (const participant of ordered) {
+    const lastNameLines = wrapPdfText(
+      regularFont,
+      participant.lastName,
+      PDF_FONT_SIZE,
+      columnWidths[1] - PDF_CELL_PADDING_X * 2,
+    )
+    const estimatedRowHeight = Math.max(
+      PDF_ROW_MIN_HEIGHT,
+      lastNameLines.length * PDF_LINE_HEIGHT + PDF_CELL_PADDING_Y * 2,
+    )
+
+    if (cursorY - estimatedRowHeight < contentBottomY) {
+      page = pdfDocument.addPage([PDF_PAGE_WIDTH, PDF_PAGE_HEIGHT])
+      drawPageFooter(page, regularFont, record)
+      cursorY = PDF_PAGE_HEIGHT - PDF_MARGIN_TOP
+      cursorY = drawTableHeader(page, boldFont, cursorY, columnWidths, maxLaps)
+    }
+
+    cursorY = drawParticipantRow(page, regularFont, participant, cursorY, columnWidths, maxLaps)
   }
+
+  const bytes = await pdfDocument.save()
+  return Buffer.from(bytes)
 }
+
 
 const toProtocolRecordFromPayload = (payload: z.infer<typeof protocolPayloadSchema>): ProtocolRecord => {
   const normalized = normalizeProtocolPayload(payload, null)
