@@ -46,6 +46,8 @@ const PDF_SIGNATURE_GAP = 26
 const PDF_SIGNATURE_LINE_WIDTH = 120
 const PDF_FONT_CANDIDATES = [
   process.env.PDF_FONT_PATH,
+  'assets/fonts/NotoSans-Regular.ttf',
+  'assets/fonts/arial.ttf',
   'C:\\Windows\\Fonts\\arial.ttf',
   '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
   '/usr/share/fonts/dejavu/DejaVuSans.ttf',
